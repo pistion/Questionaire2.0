@@ -37,9 +37,9 @@ app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
   if (req.path.startsWith("/api/")) {
-    return res.status(404).json({ error: "Route not found" });
+    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
   }
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

@@ -1,63 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="/styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Questionnaire Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        input[type="text"], select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        input[type="text"] { width: 300px; }
+        
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-refresh { background: #10b981; color: white; }
+        .btn-logout { background: #ef4444; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        .stat-card span { font-size: 0.875rem; color: #64748b; }
+        .stat-card div { font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; }
+
+        .table-container {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th {
+            background: #f1f5f9;
+            padding: 1rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569;
+        }
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+        tr:hover { background: #f8fafc; }
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-status { background: #e0e7ff; color: #4338ca; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .detail-item {
+            margin-bottom: 1rem;
+        }
+        .detail-item label { font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 0.25rem;}
+        .detail-item div { font-size: 0.9375rem; line-height: 1.5; }
+        .full { grid-column: 1 / -1; }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .gallery img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Login view styles */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        .login-container h2 { margin-top: 0; margin-bottom: 1.5rem; text-align: center; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .status-msg {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .status-error { background: #fee2e2; color: #b91c1c; display: block; }
+
+        .product-card {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div id="loginView" class="auth-box card">
-      <h1>Admin Login</h1>
-      <p class="muted">Sign in to view questionnaire submissions.</p>
-      <div id="loginStatus" class="status"></div>
-      <div class="field"><label>Email</label><input id="loginEmail" type="email" /></div>
-      <div class="field"><label>Password</label><input id="loginPassword" type="password" /></div>
-      <div class="actions"><button id="loginBtn" class="submit-btn">Login</button></div>
+
+    <!-- Login View -->
+    <div id="loginView" class="hidden">
+        <div class="login-container">
+            <h2>Admin Login</h2>
+            <div id="loginStatus" class="status-msg"></div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary" id="loginBtn" style="width: 100%">Sign In</button>
+        </div>
     </div>
 
-    <div id="dashboardView" class="hidden">
-      <div class="topbar">
-        <div>
-          <h1 style="margin:0">Questionnaire Admin</h1>
-          <p class="muted" style="margin:.35rem 0 0">Manage submissions and update statuses.</p>
-        </div>
-        <div class="actions">
-          <select id="statusFilter">
-            <option value="">All statuses</option>
-            <option value="new">New</option>
-            <option value="in_review">In review</option>
-            <option value="approved">Approved</option>
-            <option value="completed">Completed</option>
-            <option value="archived">Archived</option>
-          </select>
-          <button id="logoutBtn" class="add-btn">Logout</button>
-        </div>
-      </div>
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="container hidden">
+        <header>
+            <h1>SaaS Submissions</h1>
+            <div class="controls">
+                <select id="statusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="new">New</option>
+                    <option value="in_review">In Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="completed">Completed</option>
+                    <option value="archived">Archived</option>
+                </select>
+                <input type="text" id="searchInput" placeholder="Search business, name, email...">
+                <button class="btn btn-refresh" id="refreshBtn">Refresh</button>
+                <button class="btn btn-logout" id="logoutBtn">Logout</button>
+            </div>
+        </header>
 
-      <div class="card table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Business</th>
-              <th>Contact</th>
-              <th>Email</th>
-              <th>Status</th>
-              <th>Products</th>
-              <th>Created</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="submissionsTableBody"></tbody>
-        </table>
-      </div>
+        <div class="stats">
+            <div class="stat-card">
+                <span>Total Submissions</span>
+                <div id="totalCount">0</div>
+            </div>
+            <div class="stat-card">
+                <span>Pending Review</span>
+                <div id="pendingCount">0</div>
+            </div>
+        </div>
 
-      <div id="detailCard" class="card hidden" style="margin-top:24px"></div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Business Name</th>
+                        <th>Contact</th>
+                        <th>Products</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data injected here -->
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
 
-  <script src="/admin.js"></script>
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 id="modalTitle" style="margin:0">Submission Details</h2>
+                    <p id="modalSubtitle" style="color: #64748b; margin: 0.5rem 0 0;"></p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <select id="updateStatus">
+                        <option value="new">New</option>
+                        <option value="in_review">In Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="completed">Completed</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                    <button class="btn btn-primary" id="saveStatusBtn">Update</button>
+                </div>
+            </div>
+            
+            <div id="modalBody" class="detail-grid"></div>
+            
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tokenKey = "questionnaire_admin_token";
+        const loginView = document.getElementById("loginView");
+        const dashboardView = document.getElementById("dashboardView");
+        const tableBody = document.getElementById("tableBody");
+        const detailModal = document.getElementById("detailModal");
+        let allData = [];
+        let currentViewId = null;
+
+        function getToken() { return localStorage.getItem(tokenKey); }
+        function setToken(token) { localStorage.setItem(tokenKey, token); }
+        function clearToken() { localStorage.removeItem(tokenKey); }
+
+        async function api(path, options = {}) {
+            const res = await fetch(path, {
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                    ...(options.headers || {})
+                }
+            });
+            
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                console.error("Non-JSON response received:", text);
+                throw new Error(`Server error (${res.status}): ${text.slice(0, 100)}`);
+            }
+
+            if (!res.ok) throw new Error(data.error || "Request failed");
+            return data;
+        }
+
+        async function checkAuth() {
+            if (!getToken()) {
+                loginView.classList.remove("hidden");
+                dashboardView.classList.add("hidden");
+                return;
+            }
+            try {
+                await api("/api/auth/me");
+                loginView.classList.add("hidden");
+                dashboardView.classList.remove("hidden");
+                fetchData();
+            } catch (err) {
+                clearToken();
+                loginView.classList.remove("hidden");
+                dashboardView.classList.add("hidden");
+            }
+        }
+
+        async function fetchData() {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">Loading data...</td></tr>';
+            try {
+                const status = document.getElementById("statusFilter").value;
+                const query = status ? `?status=${status}` : "";
+                const data = await api(`/api/admin/questionnaires${query}`);
+                allData = data.items;
+                renderTable(allData);
+                updateStats(allData);
+            } catch (err) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(data) {
+            tableBody.innerHTML = data.map((item) => `
+                <tr>
+                    <td>${new Date(item.created_at).toLocaleDateString()}</td>
+                    <td><strong>${item.business_name || 'N/A'}</strong></td>
+                    <td>${item.contact_name || 'N/A'}<br><small>${item.email}</small></td>
+                    <td>${item.product_count}</td>
+                    <td><span class="badge badge-status">${item.status}</span></td>
+                    <td><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem" onclick="viewDetails(${item.id})">View All</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalCount').textContent = data.length;
+            document.getElementById('pendingCount').textContent = data.filter(i => i.status === 'new' || i.status === 'in_review').length;
+        }
+
+        async function viewDetails(id) {
+            currentViewId = id;
+            try {
+                const data = await api(`/api/admin/questionnaires/${id}`);
+                const item = data.item;
+
+                document.getElementById("modalTitle").textContent = item.business_name;
+                document.getElementById("modalSubtitle").textContent = `${item.contact_name} · ${item.email} · ${item.phone || 'No phone'}`;
+                document.getElementById("updateStatus").value = item.status;
+
+                const fields = {
+                    "Business Info": {
+                        "address": item.address,
+                        "social_links": item.social_links,
+                        "notes": item.notes
+                    },
+                    "Core Content": {
+                        "short_description": item.short_description,
+                        "services": item.services,
+                        "unique_point": item.unique_point,
+                        "audience": item.audience
+                    },
+                    "About Page": {
+                        "about_description": item.about_description,
+                        "story": item.story,
+                        "mission": item.mission,
+                        "achievements": item.achievements
+                    },
+                    "Branding & Style": {
+                        "brand_colors": item.brand_colors,
+                        "website_style": item.website_style,
+                        "example_websites": item.example_websites,
+                        "requested_features": item.requested_features
+                    }
+                };
+
+                let html = '';
+                
+                // Add Images Section
+                html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>PORTRAIT & LOGO</strong></div>`;
+                html += `
+                    <div class="detail-item">
+                        <label>Portrait</label>
+                        ${item.portrait_url ? `<img src="${item.portrait_url}" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd; cursor: pointer" onclick="window.open('${item.portrait_url}')">` : 'N/A'}
+                    </div>
+                    <div class="detail-item">
+                        <label>Logo</label>
+                        ${item.logo_url ? `<img src="${item.logo_url}" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd; cursor: pointer" onclick="window.open('${item.logo_url}')">` : 'N/A'}
+                    </div>
+                `;
+
+                for (const [section, dataMap] of Object.entries(fields)) {
+                    html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>${section.toUpperCase()}</strong></div>`;
+                    for (const [key, val] of Object.entries(dataMap)) {
+                        html += `
+                            <div class="detail-item ${['short_description', 'services', 'about_description', 'story', 'social_links'].includes(key) ? 'full' : ''}">
+                                <label>${key.replace(/_/g, ' ')}</label>
+                                <div>${(val || '---').replace(/\n/g, '<br>')}</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Products Section
+                if (item.products && item.products.length > 0) {
+                    html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>PRODUCTS (${item.products.length})</strong></div>`;
+                    html += `<div class="full">`;
+                    item.products.forEach((p, idx) => {
+                        html += `
+                            <div class="product-card">
+                                <strong>${idx + 1}. ${p.name}</strong> (${p.price || 'No price'})<br>
+                                <small>Category: ${p.category || 'N/A'} | Stock: ${p.stock || 'N/A'}</small>
+                                <p style="margin: 0.5rem 0">${p.description || 'No description'}</p>
+                                <div class="gallery">
+                                    ${(p.images || []).map(img => `<img src="${img}" onclick="window.open('${img}')">`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                document.getElementById("modalBody").innerHTML = html;
+                detailModal.style.display = 'flex';
+            } catch (err) {
+                alert("Failed to load details: " + err.message);
+            }
+        }
+
+        function closeModal() { detailModal.style.display = 'none'; }
+
+        // Event Listeners
+        document.getElementById("loginBtn").addEventListener("click", async () => {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const statusMsg = document.getElementById("loginStatus");
+            statusMsg.className = "status-msg";
+            
+            try {
+                const data = await api("/api/auth/login", {
+                    method: "POST",
+                    body: JSON.stringify({ email, password })
+                });
+                setToken(data.token);
+                checkAuth();
+            } catch (err) {
+                statusMsg.textContent = err.message;
+                statusMsg.classList.add("status-error");
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            clearToken();
+            location.reload();
+        });
+
+        document.getElementById("refreshBtn").addEventListener("click", fetchData);
+        document.getElementById("statusFilter").addEventListener("change", fetchData);
+
+        document.getElementById("saveStatusBtn").addEventListener("click", async () => {
+            const status = document.getElementById("updateStatus").value;
+            try {
+                await api(`/api/admin/questionnaires/${currentViewId}/status`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ status })
+                });
+                fetchData();
+                closeModal();
+            } catch (err) {
+                alert("Update failed: " + err.message);
+            }
+        });
+
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allData.filter(i => 
+                i.business_name.toLowerCase().includes(term) ||
+                i.contact_name.toLowerCase().includes(term) ||
+                i.email.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        checkAuth();
+    </script>
 </body>
 </html>

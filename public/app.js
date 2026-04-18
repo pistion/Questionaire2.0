@@ -25,7 +25,16 @@ async function uploadSingleFile(file, folder) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fileBase64, folder })
   });
-  const data = await res.json();
+  
+  let data;
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(`Upload failed (${res.status}): ${text.slice(0, 50)}`);
+  }
+  
   if (!res.ok) throw new Error(data.error || "Upload failed");
   return data.url;
 }
@@ -170,7 +179,16 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    let data;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      console.error("Non-JSON response received:", text);
+      throw new Error(`Server returned non-JSON response (${res.status}): ${text.slice(0, 100)}`);
+    }
+
     if (!res.ok) throw new Error(data.error || "Failed to submit questionnaire");
 
     showStatus("Questionnaire submitted successfully.");

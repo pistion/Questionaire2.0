@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webstore Submission Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+        input[type="text"] {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 300px;
+        }
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-refresh { background: #10b981; color: white; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        .stat-card span { font-size: 0.875rem; color: #64748b; }
+        .stat-card div { font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; }
+
+        .table-container {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th {
+            background: #f1f5f9;
+            padding: 1rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569;
+        }
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+        tr:hover { background: #f8fafc; }
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-industry { background: #e0e7ff; color: #4338ca; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .detail-item label { font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+        .detail-item div { margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Webstore Submissions Dashboard</h1>
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="Search business, name, or industry...">
+                <button class="btn btn-refresh" onclick="fetchData()">Refresh Data</button>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span>Total Submissions</span>
+                <div id="totalCount">0</div>
+            </div>
+            <div class="stat-card">
+                <span>Last Submission</span>
+                <div id="lastDate">-</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Business Name</th>
+                        <th>Client Name</th>
+                        <th>Industry</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Submission Details</h2>
+            <div id="modalBody" class="detail-grid"></div>
+            <br>
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // YOUR LIVE RENDER URL
+        const API_URL = 'https://travel-agency-3-sger.onrender.com'; 
+
+        let allData = [];
+
+        async function fetchData() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">Loading data from Render...</td></tr>';
+            
+            try {
+                const response = await fetch(`${API_URL}/submissions`);
+                if (!response.ok) throw new Error('Failed to connect to API');
+                
+                allData = await response.json();
+                renderTable(allData);
+                updateStats(allData);
+            } catch (err) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error: ${err.message}. Make sure the API_URL is correct and the server is running.</td></tr>`;
+            }
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td>${new Date(item.submission_date).toLocaleDateString()}</td>
+                    <td><strong>${item.business_name || 'N/A'}</strong></td>
+                    <td>${item.full_name || 'N/A'}</td>
+                    <td><span class="badge badge-industry">${item.industry || 'General'}</span></td>
+                    <td>${item.launch_date ? '📅 ' + item.launch_date : '---'}</td>
+                    <td><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem" onclick="viewDetails(${index})">View All</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalCount').textContent = data.length;
+            if (data.length > 0) {
+                document.getElementById('lastDate').textContent = new Date(data[0].submission_date).toLocaleDateString();
+            }
+        }
+
+        function viewDetails(index) {
+            const item = allData[index];
+            const modalBody = document.getElementById('modalBody');
+            const modal = document.getElementById('detailModal');
+
+            const fields = {
+                "Client Info": ["full_name", "business_name", "email", "phone", "industry", "contact_method"],
+                "Store Overview": ["product_types", "product_count", "usp", "target_audience"],
+                "Design": ["logo_status", "brand_colors", "tone_style", "inspiration_sites"],
+                "Files": ["brand_files", "product_samples", "legal_docs"],
+                "Operations": ["inventory_tracking", "product_variations", "payment_gateways", "currencies", "shipping_methods"],
+                "Technical": ["domain_status", "hosting_pref", "legal_policies", "compliance_reqs"],
+                "Planning": ["launch_date", "budget_range", "maintenance_needs"],
+                "Vision": ["vision_desc"]
+            };
+
+            let html = '';
+            for (const [section, keys] of Object.entries(fields)) {
+                html += `<div style="grid-column: 1 / -1; margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>${section}</strong></div>`;
+                keys.forEach(key => {
+                    let value = item[key];
+                    let displayValue = '---';
+
+                    if (value) {
+                        if (Array.isArray(value)) {
+                            // If it's a file list, make links
+                            if (key.includes('_files') || key.includes('samples') || key.includes('_docs')) {
+                                displayValue = value.map(path => {
+                                    const fullUrl = `${API_URL}/${path.replace(/\\/g, '/')}`;
+                                    const fileName = path.split(/[\\/]/).pop();
+                                    const ext = fileName.split('.').pop().toLowerCase();
+                                    
+                                    let mediaHtml = '';
+                                    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+                                        mediaHtml = `<img src="${fullUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; cursor: pointer;" onclick="window.open('${fullUrl}')">`;
+                                    } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                                        mediaHtml = `<video src="${fullUrl}" controls style="max-width: 100%; border-radius: 8px; margin-top: 5px;"></video>`;
+                                    } else {
+                                        mediaHtml = `<p style="font-size: 0.8rem; color: #64748b;">(Click to download file)</p>`;
+                                    }
+
+                                    return `
+                                        <div style="margin-bottom: 12px; background: #f1f5f9; padding: 8px; border-radius: 8px;">
+                                            <a href="${fullUrl}" target="_blank" download style="color: var(--primary); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">📂 ${fileName}</a>
+                                            ${mediaHtml}
+                                        </div>
+                                    `;
+                                }).join('');
+                            } else {
+                                displayValue = value.join(', ');
+                            }
+                        } else {
+                            displayValue = value;
+                        }
+                    }
+
+                    html += `
+                        <div class="detail-item">
+                            <label>${key.replace(/_/g, ' ')}</label>
+                            <div>${displayValue}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            modalBody.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function downloadCSV() {
+            if (allData.length === 0) return alert('No data to export');
+            
+            const headers = Object.keys(allData[0]);
+            const rows = allData.map(item => 
+                headers.map(header => {
+                    let val = item[header] || '';
+                    if (Array.isArray(val)) val = val.join('|');
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(',')
+            );
+
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `webstore_submissions_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Search Filter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allData.filter(item => 
+                (item.business_name || '').toLowerCase().includes(term) ||
+                (item.full_name || '').toLowerCase().includes(term) ||
+                (item.industry || '').toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        // Initial Load
+        fetchData();
+    </script>
+</body>
+</html>
