@@ -3,6 +3,39 @@ const statusBox = document.getElementById("statusBox");
 const productList = document.getElementById("productList");
 const addProductBtn = document.getElementById("addProductBtn");
 
+// Modal Elements
+const modalOverlay = document.getElementById("modalOverlay");
+const resultModal = document.getElementById("resultModal");
+const modalIcon = document.getElementById("modalIcon");
+const modalTitle = document.getElementById("modalTitle");
+const modalMessage = document.getElementById("modalMessage");
+const modalDetails = document.getElementById("modalDetails");
+const closeModalBtn = document.getElementById("closeModalBtn");
+
+function showModal(title, message, type = "success", details = "") {
+  resultModal.className = `modal ${type}`;
+  modalIcon.textContent = type === "success" ? "✅" : "❌";
+  modalTitle.textContent = title;
+  modalMessage.textContent = message;
+  
+  if (details) {
+    modalDetails.textContent = details;
+    modalDetails.classList.remove("hidden");
+  } else {
+    modalDetails.classList.add("hidden");
+  }
+  
+  modalOverlay.style.display = "flex";
+  setTimeout(() => resultModal.classList.add("show"), 10);
+}
+
+closeModalBtn.addEventListener("click", () => {
+  resultModal.classList.remove("show");
+  setTimeout(() => {
+    modalOverlay.style.display = "none";
+  }, 300);
+});
+
 function showStatus(message, type = "success") {
   statusBox.className = `status show ${type}`;
   statusBox.textContent = message;
@@ -186,19 +219,30 @@ form.addEventListener("submit", async (event) => {
     } else {
       const text = await res.text();
       console.error("Non-JSON response received:", text);
-      throw new Error(`Server returned non-JSON response (${res.status}): ${text.slice(0, 100)}`);
+      throw { message: "Server Error", details: `Non-JSON response: ${text.slice(0, 100)}` };
     }
 
-    if (!res.ok) throw new Error(data.error || "Failed to submit questionnaire");
+    if (!res.ok) {
+      throw { 
+        message: data.error || "Submission Failed", 
+        details: data.details ? `${data.details}${data.code ? ` (Code: ${data.code})` : ""} [Env: ${data.env}]` : "" 
+      };
+    }
 
-    showStatus("Questionnaire submitted successfully.");
+    showModal("Success!", "Your questionnaire has been submitted successfully.", "success");
     form.reset();
     productList.innerHTML = "";
     addProduct();
     document.getElementById("portraitFiles").innerHTML = "";
     document.getElementById("logoFiles").innerHTML = "";
   } catch (error) {
-    showStatus(error.message || "Something went wrong.", "error");
+    console.error("Submission Error:", error);
+    showModal(
+      error.message || "Error", 
+      "There was a problem submitting your questionnaire.", 
+      "error", 
+      error.details || error.toString()
+    );
   } finally {
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = false;

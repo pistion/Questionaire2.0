@@ -113,8 +113,13 @@ router.post("/questionnaires", async (req, res) => {
     res.status(201).json({ success: true, id: questionnaireId });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error(error);
-    res.status(500).json({ error: "Failed to save questionnaire" });
+    console.error("Database Error:", error);
+    res.status(500).json({ 
+      error: "Failed to save questionnaire", 
+      details: error.message,
+      code: error.code,
+      env: process.env.NODE_ENV
+    });
   } finally {
     client.release();
   }
