@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./src/routes/auth");
 const publicRoutes = require("./src/routes/public");
 const adminRoutes = require("./src/routes/admin");
+const pool = require("./src/db");
 
 const app = express();
 
@@ -23,8 +24,13 @@ app.use(
   })
 );
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "questionnaire-saas" });
+app.get("/api/health", async (_req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ ok: true, database: "connected", service: "questionnaire-saas" });
+  } catch (err) {
+    res.status(500).json({ ok: false, database: "error", error: err.message });
+  }
 });
 
 app.use("/api/auth", authRoutes);
