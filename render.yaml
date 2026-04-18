@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: npm run db:init && npm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -19,7 +19,20 @@ services:
         fromDatabase:
           name: questionnaire-saas-db
           property: connectionString
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SEED_ADMIN_NAME
+        value: Admin User
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
 
 databases:
   - name: questionnaire-saas-db
     plan: starter
+    postgresMajorVersion: "18"
