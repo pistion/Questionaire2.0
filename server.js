@@ -33,6 +33,36 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
+// TEMPORARY: Force database initialization via browser
+app.get("/api/force-init", async (req, res) => {
+  const token = req.query.token;
+  if (!token || token !== process.env.JWT_SECRET) {
+    return res.status(403).json({ error: "Unauthorized. Please provide the correct token." });
+  }
+
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const schema = fs.readFileSync(path.join(__dirname, "src", "db", "schema.sql"), "utf8");
+    
+    // Split schema into individual statements to handle potential issues with multiple commands in one query
+    await pool.query(schema);
+    
+    res.json({ 
+      success: true, 
+      message: "Database initialized successfully via force-init.",
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("Force Init Error:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
+  }
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/admin", adminRoutes);
