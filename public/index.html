@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Website Content Questionnaire</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Website Content Questionnaire</h1>
+      <p>Please complete this form with as much detail as possible. The information you provide here will be used to prepare your website content, product listings, and branding layout.</p>
+    </div>
+
+    <div id="statusBox" class="status"></div>
+
+    <form id="questionnaireForm">
+      <section class="section">
+        <h2>1. Business Information</h2>
+        <p class="intro">Basic contact and business details for your website and communication setup.</p>
+        <div class="grid">
+          <div class="field"><label for="businessName">Business Name</label><input id="businessName" required /></div>
+          <div class="field"><label for="contactName">Contact Person Name</label><input id="contactName" required /></div>
+          <div class="field"><label for="email">Email Address</label><input id="email" type="email" required /></div>
+          <div class="field"><label for="phone">Phone Number</label><input id="phone" /></div>
+          <div class="field full"><label for="address">Business Address</label><input id="address" /></div>
+          <div class="field full"><label for="socialLinks">Social Media Links</label><textarea id="socialLinks"></textarea></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>2. Home Page Business Description</h2>
+        <p class="intro">This helps create the main introduction visitors will see first on your website.</p>
+        <div class="grid">
+          <div class="field full"><label for="shortDescription">Short Business Description</label><textarea id="shortDescription"></textarea></div>
+          <div class="field full"><label for="services">What products or services do you offer?</label><textarea id="services"></textarea></div>
+          <div class="field"><label for="uniquePoint">What makes your business unique?</label><textarea id="uniquePoint"></textarea></div>
+          <div class="field"><label for="audience">Who is your target audience?</label><textarea id="audience"></textarea></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>3. About Page Content</h2>
+        <p class="intro">Use this section to tell your story and build trust with your audience.</p>
+        <div class="grid">
+          <div class="field full"><label for="aboutDescription">Detailed About Us Description</label><textarea id="aboutDescription"></textarea></div>
+          <div class="field full"><label for="story">Your Story</label><textarea id="story"></textarea></div>
+          <div class="field"><label for="mission">Mission / Vision</label><textarea id="mission"></textarea></div>
+          <div class="field"><label for="achievements">Achievements / Experience</label><textarea id="achievements"></textarea></div>
+          <div class="field full">
+            <label for="portrait">Portrait Photo</label>
+            <input id="portrait" type="file" accept="image/*" />
+            <div id="portraitFiles" class="file-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>4. Product Information</h2>
+        <p class="intro">Add each product you want featured on the website. Include a name, price, description, and images.</p>
+        <div id="productList"></div>
+        <div class="actions">
+          <button type="button" class="add-btn" id="addProductBtn">+ Add Another Product</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>5. Branding Preferences</h2>
+        <p class="intro">These details help match the website to your brand identity and preferred style.</p>
+        <div class="grid">
+          <div class="field full">
+            <label for="logo">Logo</label>
+            <input id="logo" type="file" accept="image/*,.svg,.pdf" />
+            <div id="logoFiles" class="file-list"></div>
+          </div>
+          <div class="field"><label for="brandColors">Preferred Brand Colors</label><input id="brandColors" /></div>
+          <div class="field">
+            <label for="websiteStyle">Preferred Website Style</label>
+            <select id="websiteStyle">
+              <option value="">Select a style</option>
+              <option>Modern</option>
+              <option>Minimal</option>
+              <option>Elegant</option>
+              <option>Bold</option>
+              <option>Luxury</option>
+              <option>Corporate</option>
+              <option>Creative</option>
+            </select>
+          </div>
+          <div class="field full"><label for="exampleWebsites">Example Websites You Like</label><textarea id="exampleWebsites"></textarea></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>6. Additional Notes</h2>
+        <div class="grid">
+          <div class="field full"><label for="notes">Extra Information or Requests</label><textarea id="notes"></textarea></div>
+          <div class="field full"><label for="requestedFeatures">Features Needed</label><textarea id="requestedFeatures"></textarea></div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="submit-btn" type="submit">Submit Questionnaire</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

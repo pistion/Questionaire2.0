@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div id="loginView" class="auth-box card">
+      <h1>Admin Login</h1>
+      <p class="muted">Sign in to view questionnaire submissions.</p>
+      <div id="loginStatus" class="status"></div>
+      <div class="field"><label>Email</label><input id="loginEmail" type="email" /></div>
+      <div class="field"><label>Password</label><input id="loginPassword" type="password" /></div>
+      <div class="actions"><button id="loginBtn" class="submit-btn">Login</button></div>
+    </div>
+
+    <div id="dashboardView" class="hidden">
+      <div class="topbar">
+        <div>
+          <h1 style="margin:0">Questionnaire Admin</h1>
+          <p class="muted" style="margin:.35rem 0 0">Manage submissions and update statuses.</p>
+        </div>
+        <div class="actions">
+          <select id="statusFilter">
+            <option value="">All statuses</option>
+            <option value="new">New</option>
+            <option value="in_review">In review</option>
+            <option value="approved">Approved</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
+          </select>
+          <button id="logoutBtn" class="add-btn">Logout</button>
+        </div>
+      </div>
+
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Business</th>
+              <th>Contact</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Products</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="submissionsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="detailCard" class="card hidden" style="margin-top:24px"></div>
+    </div>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: questionnaire-saas
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_URL
+        fromService:
+          type: web
+          name: questionnaire-saas
+          property: host
+      - key: DATABASE_URL
+        fromDatabase:
+          name: questionnaire-saas-db
+          property: connectionString
+
+databases:
+  - name: questionnaire-saas-db
+    plan: starter
