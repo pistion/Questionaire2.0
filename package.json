@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "viewer:export": "node scripts/export-viewer-data.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

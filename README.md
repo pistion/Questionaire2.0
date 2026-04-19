@@ -1,13 +1,13 @@
 # Website Questionnaire SaaS
 
-A full-stack starter SaaS for collecting website content questionnaires, storing submissions in PostgreSQL, uploading branding/product images to Cloudinary, and managing everything from an admin dashboard.
+A full-stack starter SaaS for collecting website content questionnaires, storing submissions in PostgreSQL, saving uploaded media into a local `public/uploads` folder, and managing everything from an admin dashboard.
 
 ## Features
 
 - Admin authentication with JWT
 - Public questionnaire form
 - Dynamic product entries
-- Cloudinary image uploads
+- Local file uploads for images and PDFs
 - PostgreSQL relational schema
 - Admin dashboard for submissions
 - Render-ready deployment config
@@ -16,7 +16,6 @@ A full-stack starter SaaS for collecting website content questionnaires, storing
 
 - Node.js + Express
 - PostgreSQL
-- Cloudinary
 - Vanilla HTML/CSS/JS frontend
 - JWT auth
 
@@ -24,8 +23,7 @@ A full-stack starter SaaS for collecting website content questionnaires, storing
 
 1. Copy `.env.example` to `.env`
 2. Create a PostgreSQL database
-3. Fill in Cloudinary credentials
-4. Install dependencies
+3. Install dependencies
 
 ```bash
 npm install
@@ -37,10 +35,12 @@ Then open `http://localhost:3000`
 
 ## Database configuration
 
-- The app saves submissions to PostgreSQL only. It does not use local file storage for questionnaire data.
+- The app saves questionnaire answers to PostgreSQL.
+- Uploaded media files are stored locally in `public/uploads`.
 - `DATABASE_URL` is read automatically from `.env` locally and from your deployment environment in production.
 - On startup, the server validates the DB connection and automatically runs `src/db/schema.sql` to create or update the required tables.
 - If `DATABASE_URL` is missing or invalid, the server now fails fast at startup instead of starting in a broken or preview-only state.
+- For a temporary local setup, local uploads are simple and fast. If you deploy to an ephemeral host later, move uploads to dedicated file storage.
 
 ## PayPal payment callbacks
 
@@ -54,8 +54,11 @@ Set these environment variables:
 
 - `PAYPAL_ENV=live` or `sandbox`
 - `PAYPAL_RECEIVER_EMAIL` to your PayPal merchant email
+- `PAYPAL_HOSTED_LINK_URL` to your hosted PayPal payment page URL
 - `PAYPAL_EXPECTED_AMOUNT` to the fixed amount configured on your hosted PayPal button/link
 - `PAYPAL_EXPECTED_CURRENCY` to the fixed currency configured on your hosted PayPal button/link
+
+For temporary local testing, you can leave `PAYPAL_RECEIVER_EMAIL` blank to skip strict receiver-email matching until you are ready to use your real PayPal business email.
 
 PayPal account settings to enable:
 
@@ -83,9 +86,6 @@ The DB init script creates an admin user from these env vars:
 3. Set these environment variables in Render:
    - `DATABASE_URL`
    - `APP_URL`
-   - `CLOUDINARY_CLOUD_NAME`
-   - `CLOUDINARY_API_KEY`
-   - `CLOUDINARY_API_SECRET`
    - `PAYPAL_RECEIVER_EMAIL`
    - `SEED_ADMIN_EMAIL`
    - `SEED_ADMIN_PASSWORD`
@@ -110,6 +110,6 @@ The DB init script creates an admin user from these env vars:
 
 ## Notes
 
-- This starter stores image URLs in the DB after uploading to Cloudinary.
+- This starter stores uploaded file URLs in the DB after saving them into `public/uploads`.
 - For multi-tenant SaaS, add organizations, customer portals, billing, and role-based permissions.
 - For payments, Stripe is the next step.

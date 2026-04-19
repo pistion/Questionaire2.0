@@ -3,27 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Standalone Database Viewer</title>
+  <title>Database Viewer | Glondia Questionnaire</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="public/database-viewer.css">
+  <link rel="stylesheet" href="/database-viewer.css">
 </head>
 <body>
-  <div class="dbv-shell">
+  <div id="loginView" class="dbv-login-shell">
+    <div class="dbv-login-card">
+      <p class="dbv-eyebrow">Database Access</p>
+      <h1>Database Viewer</h1>
+      <p class="dbv-login-copy">
+        Sign in with your admin account to view questionnaire answers, media uploads,
+        payment records, and raw table data stored in PostgreSQL.
+      </p>
+      <div id="loginStatus" class="dbv-status hidden"></div>
+      <label class="dbv-label" for="loginEmail">Email Address</label>
+      <input id="loginEmail" class="dbv-input" type="email" placeholder="admin@example.com" autocomplete="username">
+      <label class="dbv-label" for="loginPassword">Password</label>
+      <input id="loginPassword" class="dbv-input" type="password" placeholder="Enter your password" autocomplete="current-password">
+      <button id="loginBtn" class="dbv-btn dbv-btn-primary dbv-btn-block">Open Database Viewer</button>
+    </div>
+  </div>
+
+  <div id="appView" class="dbv-shell hidden">
     <header class="dbv-hero">
       <div class="dbv-hero-copy">
-        <p class="dbv-eyebrow">Standalone Database Viewer</p>
-        <h1>Static client viewer for your external PostgreSQL data</h1>
+        <p class="dbv-eyebrow">Admin Database Explorer</p>
+        <h1>Questionnaire answers, media files, and table records in one view</h1>
         <p>
-          This page does not call your app server. It renders a generated snapshot from
-          <code>viewer-data.js</code>, which is produced locally from your external Render
-          PostgreSQL database by the export script.
+          This explorer reads the stored questionnaire, product, image, receipt, and PayPal
+          rows through authenticated backend calls so you can inspect exactly what was saved.
         </p>
       </div>
       <div class="dbv-hero-actions">
-        <button id="reloadBtn" class="dbv-btn dbv-btn-primary">Reload Page</button>
-        <button id="openDataBtn" class="dbv-btn dbv-btn-secondary">Open Data File</button>
+        <button id="refreshBtn" class="dbv-btn dbv-btn-primary">Refresh Data</button>
+        <a class="dbv-btn dbv-btn-secondary" href="/admin">Open Admin Dashboard</a>
+        <button id="logoutBtn" class="dbv-btn dbv-btn-ghost">Logout</button>
       </div>
     </header>
 
@@ -63,13 +80,8 @@
 
       <main class="dbv-main dbv-panel">
         <div id="detailState" class="dbv-empty-state">
-          <div>
-            <h2>Waiting for exported data</h2>
-            <p>
-              Run <code>npm run viewer:export</code> to generate <code>viewer-data.js</code>,
-              then refresh this page.
-            </p>
-          </div>
+          <h2>Select a submission</h2>
+          <p>The full questionnaire answers, uploads, receipt data, and linked payments will appear here.</p>
         </div>
         <div id="submissionDetail" class="hidden"></div>
       </main>
@@ -90,7 +102,6 @@
     </section>
   </div>
 
-  <script src="viewer-data.js"></script>
-  <script src="public/viewer-standalone.js"></script>
+  <script src="/database-viewer.js"></script>
 </body>
 </html>

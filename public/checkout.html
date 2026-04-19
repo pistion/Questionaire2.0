@@ -315,6 +315,9 @@
       paypalQuoteValue.textContent = data.receipt.paypalQuoteAmount === null || data.receipt.paypalQuoteAmount === undefined
         ? "Stored PayPal quote: Pending"
         : `Stored PayPal quote: ${formatUsd(data.receipt.paypalQuoteAmount)} ${data.receipt.paymentCurrency}`;
+      if (data.paypalHostedLinkUrl) {
+        paypalBtn.href = data.paypalHostedLinkUrl;
+      }
       paypalRateNote.textContent = "This opens your secure PayPal payment page in a new tab using the fixed amount configured in PayPal.";
 
       if (data.submissionId) {

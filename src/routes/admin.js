@@ -1,10 +1,22 @@
 const express = require("express");
 const pool = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const { loadDatabaseViewerPayload } = require("../lib/databaseViewer");
 
 const router = express.Router();
 
 router.use(requireAuth);
+
+router.get("/database-viewer", async (_req, res) => {
+  try {
+    const payload = await loadDatabaseViewerPayload(pool);
+    res.json(payload);
+  } catch (error) {
+    res.status(error.code === "DB_NOT_CONFIGURED" ? 503 : 500).json({
+      error: error.message || "Failed to load database viewer data"
+    });
+  }
+});
 
 router.get("/questionnaires", async (req, res) => {
   try {

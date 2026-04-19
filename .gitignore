@@ -1,3 +1,4 @@
 node_modules/
 .env
+viewer-data.js
 .DS_Store

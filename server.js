@@ -50,6 +50,14 @@ app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+app.get("/database-viewer", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "database-viewer.html"));
+});
+
+app.get("/viewer", (_req, res) => {
+  res.redirect("/database-viewer");
+});
+
 app.get("/checkout", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "checkout.html"));
 });

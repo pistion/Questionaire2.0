@@ -7,6 +7,24 @@ const path = require("path");
 const isProduction = process.env.NODE_ENV === "production";
 const databaseUrl = process.env.DATABASE_URL;
 
+function shouldUseSsl(connectionString) {
+  if (!connectionString) {
+    return false;
+  }
+
+  const sslSetting = String(process.env.DATABASE_SSL || process.env.PGSSLMODE || "").trim().toLowerCase();
+  if (["true", "1", "require"].includes(sslSetting)) {
+    return true;
+  }
+
+  return (
+    isProduction ||
+    /sslmode=require/i.test(connectionString) ||
+    /\.render\.com(?::|\/|$)/i.test(connectionString) ||
+    /\.render-postgres\.com(?::|\/|$)/i.test(connectionString)
+  );
+}
+
 function createDatabaseUnavailableError() {
   const error = new Error("DATABASE_URL is required. Add it to your .env file or deployment environment.");
   error.code = "DB_NOT_CONFIGURED";
@@ -16,7 +34,7 @@ function createDatabaseUnavailableError() {
 const underlyingPool = databaseUrl
   ? new Pool({
       connectionString: databaseUrl,
-      ssl: isProduction ? { rejectUnauthorized: false } : false
+      ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false
     })
   : null;
 

@@ -1,10 +1,13 @@
 const express = require("express");
+const crypto = require("crypto");
+const fs = require("fs/promises");
+const path = require("path");
 const pool = require("../db");
-const cloudinary = require("../lib/cloudinary");
 const {
   getExpectedAmount,
   getExpectedCurrency,
   getExpectedReceiverEmail,
+  getHostedPaymentLink,
   verifyPayPalIpn
 } = require("../lib/paypal");
 
@@ -17,8 +20,63 @@ const DEFAULT_PAYMENT_PRICING = Object.freeze({
   paymentCurrency: "USD"
 });
 
+const LOCAL_UPLOAD_ROOT = path.join(__dirname, "..", "..", "public", "uploads");
+const MIME_EXTENSION_MAP = Object.freeze({
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/svg+xml": "svg",
+  "application/pdf": "pdf"
+});
+
 function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function sanitizeFolder(folder) {
+  return String(folder || "")
+    .split(/[\\/]+/)
+    .map((segment) => segment.trim().replace(/[^a-zA-Z0-9_-]+/g, "-"))
+    .filter(Boolean)
+    .join(path.sep);
+}
+
+function parseBase64Upload(fileBase64) {
+  const match = String(fileBase64 || "").match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Invalid upload payload");
+  }
+
+  const mimeType = match[1].toLowerCase();
+  const extension = MIME_EXTENSION_MAP[mimeType];
+
+  if (!extension) {
+    throw new Error(`Unsupported upload type: ${mimeType}`);
+  }
+
+  return {
+    mimeType,
+    extension,
+    buffer: Buffer.from(match[2], "base64")
+  };
+}
+
+async function saveUploadLocally(fileBase64, folder) {
+  const safeFolder = sanitizeFolder(folder) || "questionnaire-saas";
+  const { extension, buffer } = parseBase64Upload(fileBase64);
+  const dirPath = path.join(LOCAL_UPLOAD_ROOT, safeFolder);
+  const fileName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
+  const filePath = path.join(dirPath, fileName);
+
+  await fs.mkdir(dirPath, { recursive: true });
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    url: `/${path.posix.join("uploads", ...safeFolder.split(path.sep), fileName)}`,
+    publicId: path.posix.join(safeFolder.replace(/\\/g, "/"), fileName)
+  };
 }
 
 function getStoredPayPalQuoteAmount() {
@@ -198,6 +256,7 @@ function formatReceiptResponse(questionnaire, receipt) {
     paymentStatus: questionnaire.payment_status,
     paymentTransactionId: questionnaire.payment_txn_id,
     paidAt: questionnaire.paid_at,
+    paypalHostedLinkUrl: getHostedPaymentLink(),
     receipt: {
       domainPgk: Number(receipt.domain_pgk),
       hostingPgk: Number(receipt.hosting_pgk),
@@ -516,15 +575,8 @@ router.post("/uploads", async (req, res) => {
   }
 
   try {
-    const uploaded = await cloudinary.uploader.upload(fileBase64, {
-      folder,
-      resource_type: "auto"
-    });
-
-    res.json({
-      url: uploaded.secure_url,
-      publicId: uploaded.public_id
-    });
+    const uploaded = await saveUploadLocally(fileBase64, folder);
+    res.json(uploaded);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Upload failed" });
