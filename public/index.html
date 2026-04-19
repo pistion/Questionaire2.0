@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Website Content Questionnaire</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -17,15 +18,84 @@
 
     <form id="questionnaireForm">
       <section class="section">
-        <h2>1. Business Information</h2>
-        <p class="intro">Basic contact and business details for your website and communication setup.</p>
-        <div class="grid">
-          <div class="field"><label for="businessName">Business Name</label><input id="businessName" required /></div>
-          <div class="field"><label for="contactName">Contact Person Name</label><input id="contactName" required /></div>
-          <div class="field"><label for="email">Email Address</label><input id="email" type="email" required /></div>
-          <div class="field"><label for="phone">Phone Number</label><input id="phone" /></div>
-          <div class="field full"><label for="address">Business Address</label><input id="address" /></div>
-          <div class="field full"><label for="socialLinks">Social Media Links</label><textarea id="socialLinks"></textarea></div>
+        <h2>1. Business and Personal Information</h2>
+        <p class="intro">Start with the business details. Then click Next to fill in the personal information for the owner or representative.</p>
+        <div class="section-steps">
+          <span id="businessInfoChip" class="step-chip active">Business Information</span>
+          <span id="personalInfoChip" class="step-chip">Personal Information</span>
+        </div>
+
+        <div id="businessInfoStep" class="step-panel">
+          <div class="grid">
+            <div class="field full"><label for="businessName">Business Name</label><input id="businessName" /></div>
+            <div class="field"><label for="governmentTaxNumber">Government Business Tax Number</label><input id="governmentTaxNumber" /></div>
+            <div class="field"><label for="collectionBusinessTaxNumber">Collection Business Tax Number</label><input id="collectionBusinessTaxNumber" /></div>
+            <div class="field full"><label for="address">Business Address</label><input id="address" /></div>
+            <div class="field full">
+              <label>Social Media Links</label>
+              <p class="hint">Add business profile or page links for each platform.</p>
+              <div class="social-links-grid">
+                <div class="social-link-item">
+                  <span class="social-icon facebook" aria-hidden="true"><i class="fa-brands fa-facebook-f"></i></span>
+                  <div class="social-link-copy">
+                    <label for="facebookLink">Facebook</label>
+                    <input id="facebookLink" placeholder="https://facebook.com/your-page" />
+                  </div>
+                </div>
+                <div class="social-link-item">
+                  <span class="social-icon linkedin" aria-hidden="true"><i class="fa-brands fa-linkedin-in"></i></span>
+                  <div class="social-link-copy">
+                    <label for="linkedinLink">LinkedIn</label>
+                    <input id="linkedinLink" placeholder="https://linkedin.com/in/your-profile" />
+                  </div>
+                </div>
+                <div class="social-link-item">
+                  <span class="social-icon instagram" aria-hidden="true"><i class="fa-brands fa-instagram"></i></span>
+                  <div class="social-link-copy">
+                    <label for="instagramLink">Instagram</label>
+                    <input id="instagramLink" placeholder="https://instagram.com/your-handle" />
+                  </div>
+                </div>
+                <div class="social-link-item">
+                  <span class="social-icon tiktok" aria-hidden="true"><i class="fa-brands fa-tiktok"></i></span>
+                  <div class="social-link-copy">
+                    <label for="tiktokLink">TikTok</label>
+                    <input id="tiktokLink" placeholder="https://tiktok.com/@your-handle" />
+                  </div>
+                </div>
+                <div class="social-link-item full">
+                  <span class="social-icon other" aria-hidden="true"><i class="fa-solid fa-link"></i></span>
+                  <div class="social-link-copy">
+                    <label for="otherSocialLink">Other</label>
+                    <input id="otherSocialLink" placeholder="https://your-other-platform-link" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="step-actions">
+            <button type="button" class="submit-btn" id="businessInfoNextBtn">Next</button>
+          </div>
+        </div>
+
+        <div id="personalInfoStep" class="step-panel hidden">
+          <p class="step-note">Personal information for the main contact person. Home address is optional.</p>
+          <div class="grid">
+            <div class="field"><label for="firstName">Name</label><input id="firstName" /></div>
+            <div class="field"><label for="middleName">Middle Name</label><input id="middleName" /></div>
+            <div class="field"><label for="surname">Surname</label><input id="surname" /></div>
+            <div class="field">
+              <label for="nidNumber">NID Number</label>
+              <input id="nidNumber" />
+              <p class="hint">Used for confirmation purposes.</p>
+            </div>
+            <div class="field"><label for="email">Email Address</label><input id="email" type="email" /></div>
+            <div class="field"><label for="phone">Phone Number</label><input id="phone" /></div>
+            <div class="field full"><label for="homeAddress">Home Address (Optional)</label><input id="homeAddress" /></div>
+          </div>
+          <div class="step-actions">
+            <button type="button" class="back-btn" id="personalInfoBackBtn">Back</button>
+          </div>
         </div>
       </section>
 
@@ -48,8 +118,13 @@
           <div class="field full"><label for="story">Your Story</label><textarea id="story"></textarea></div>
           <div class="field"><label for="mission">Mission / Vision</label><textarea id="mission"></textarea></div>
           <div class="field"><label for="achievements">Achievements / Experience</label><textarea id="achievements"></textarea></div>
-          <div class="field full">
-            <label for="portrait">Portrait Photo</label>
+          <div class="field full media-section">
+            <div class="media-header">
+              <h3>Media</h3>
+              <p>Add a clean portrait photo to support the About section.</p>
+            </div>
+            <label for="portrait">ID-Size Portrait Photo</label>
+            <p class="hint">Upload a clean, professional portrait photo of the user. A suit or other professional attire is preferred. A tidy bookstore setting or a plain clean background works well.</p>
             <input id="portrait" type="file" accept="image/*" />
             <div id="portraitFiles" class="file-list"></div>
           </div>
@@ -58,7 +133,7 @@
 
       <section class="section">
         <h2>4. Product Information</h2>
-        <p class="intro">Add each product you want featured on the website. Include a name, price, description, and images.</p>
+        <p class="intro">Add each product you want featured on the website. Include the product name, product description, price, and images.</p>
         <div id="productList"></div>
         <div class="actions">
           <button type="button" class="add-btn" id="addProductBtn">+ Add Another Product</button>
@@ -93,7 +168,40 @@
       </section>
 
       <section class="section">
-        <h2>6. Additional Notes</h2>
+        <h2>6. Website Build Type</h2>
+        <p class="intro">Choose the build type you prefer for the website development stack.</p>
+        <div class="grid">
+          <div class="field full">
+            <label for="websiteBuildType">Preferred Website Build Type</label>
+            <select id="websiteBuildType">
+              <option value="">Select a build type</option>
+              <option>React</option>
+              <option>Express</option>
+              <option>Node Express</option>
+              <option>Static HTML</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>7. Store Policies</h2>
+        <p class="intro">Add the store policies here. You can write the policy details, upload a PDF document, or do both.</p>
+        <div class="grid">
+          <div class="field full">
+            <label for="storePolicies">Store Policy Details</label>
+            <textarea id="storePolicies" placeholder="Describe refund rules, delivery policies, exchange terms, payment conditions, opening hours, or any other store policies."></textarea>
+          </div>
+          <div class="field full">
+            <label for="storePoliciesPdf">Store Policy PDF Document</label>
+            <input id="storePoliciesPdf" type="file" accept=".pdf,application/pdf" />
+            <div id="storePoliciesPdfFiles" class="file-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>8. Additional Notes</h2>
         <div class="grid">
           <div class="field full"><label for="notes">Extra Information or Requests</label><textarea id="notes"></textarea></div>
           <div class="field full"><label for="requestedFeatures">Features Needed</label><textarea id="requestedFeatures"></textarea></div>

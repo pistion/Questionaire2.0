@@ -12,9 +12,16 @@ const pool = require("./src/db");
 
 const app = express();
 
+function captureRawBody(req, _res, buf, encoding) {
+  if (!buf?.length || !req.originalUrl?.startsWith("/api/public/paypal")) {
+    return;
+  }
+  req.rawBody = buf.toString(encoding || "utf8");
+}
+
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb", verify: captureRawBody }));
+app.use(express.urlencoded({ extended: true, limit: "10mb", verify: captureRawBody }));
 
 app.use(
   "/api",
@@ -43,6 +50,14 @@ app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+app.get("/checkout", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "checkout.html"));
+});
+
+app.get("/payment", (_req, res) => {
+  res.redirect("/checkout");
+});
+
 app.use((req, res) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
@@ -53,10 +68,15 @@ app.use((req, res) => {
 const port = process.env.PORT || 3000;
 const host = "0.0.0.0";
 
-// Bootstrap database then start server
-pool.bootstrap().then(() => {
+async function startServer() {
+  await pool.bootstrap();
   app.listen(port, host, () => {
     console.log(`Server running on port ${port} and host ${host}`);
     console.log("Database initialized and server is ready for traffic.");
   });
+}
+
+startServer().catch((error) => {
+  console.error("Server startup failed:", error.message);
+  process.exit(1);
 });

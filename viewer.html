@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webstore Submission Dashboard</title>
+    <title>Questionnaire Submissions Viewer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
+            --primary: #2563eb;
             --bg: #f8fafc;
             --card: #ffffff;
             --text: #1e293b;
@@ -23,7 +23,7 @@
             padding: 2rem;
         }
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         header {
@@ -53,6 +53,7 @@
         }
         .btn-primary { background: var(--primary); color: white; }
         .btn-refresh { background: #10b981; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
 
         .stats {
             display: grid;
@@ -96,13 +97,14 @@
             font-size: 0.9375rem;
         }
         tr:hover { background: #f8fafc; }
-        .badge {
+        .tag {
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
+            background: #eff6ff;
+            color: #1d4ed8;
         }
-        .badge-industry { background: #e0e7ff; color: #4338ca; }
 
         .modal {
             display: none;
@@ -117,8 +119,8 @@
             background: white;
             padding: 2rem;
             border-radius: 16px;
-            max-width: 800px;
-            width: 90%;
+            max-width: 900px;
+            width: 95%;
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -128,18 +130,51 @@
             gap: 1.5rem;
             margin-top: 1rem;
         }
-        .detail-item label { font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
-        .detail-item div { margin-top: 0.25rem; }
+        .full-width { grid-column: 1 / -1; }
+        .detail-item { margin-bottom: 1rem; }
+        .detail-item label { font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .detail-item div { white-space: pre-wrap; }
+        
+        .section-title {
+            grid-column: 1 / -1;
+            margin-top: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .product-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .img-preview {
+            max-width: 150px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        .auth-error {
+            text-align: center;
+            padding: 4rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" id="app">
         <header>
-            <h1>Webstore Submissions Dashboard</h1>
+            <h1>Questionnaire Submissions</h1>
             <div class="controls">
-                <input type="text" id="searchInput" placeholder="Search business, name, or industry...">
-                <button class="btn btn-refresh" onclick="fetchData()">Refresh Data</button>
+                <input type="text" id="searchInput" placeholder="Search business, name, or email...">
+                <button class="btn btn-refresh" onclick="fetchData()">Refresh</button>
             </div>
         </header>
 
@@ -160,14 +195,14 @@
                     <tr>
                         <th>Date</th>
                         <th>Business Name</th>
-                        <th>Client Name</th>
-                        <th>Industry</th>
+                        <th>Contact Name</th>
+                        <th>Email</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Data injected here -->
+                    <tr><td colspan="6" style="text-align:center">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -176,45 +211,79 @@
     <!-- Detail Modal -->
     <div id="detailModal" class="modal">
         <div class="modal-content">
-            <h2 id="modalTitle">Submission Details</h2>
+            <header style="margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;">
+                <h2 id="modalTitle" style="margin:0">Submission Details</h2>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </header>
             <div id="modalBody" class="detail-grid"></div>
-            <br>
-            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal()">Close Window</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // YOUR LIVE RENDER URL
-        const API_URL = 'https://travel-agency-3-sger.onrender.com'; 
+        // PASTE YOUR RENDER URL HERE (e.g., 'https://your-site.onrender.com')
+        const API_BASE_URL = ''; 
 
         let allData = [];
+        
+        // Get password from URL query string, default to 'viewer123' if missing
+        const urlParams = new URLSearchParams(window.location.search);
+        const pwd = urlParams.get('pwd') || 'viewer123';
 
         async function fetchData() {
             const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">Loading data from Render...</td></tr>';
-            
+            const app = document.getElementById('app');
+
+            if (!API_BASE_URL) {
+                app.innerHTML = `
+                    <div class="auth-error">
+                        <h2 style="color: #f59e0b">Setup Required</h2>
+                        <p>Please open <code>viewer.html</code> in a text editor and paste your Render URL into the <code>API_BASE_URL</code> variable (line 228).</p>
+                    </div>
+                `;
+                return;
+            }
+
             try {
-                const response = await fetch(`${API_URL}/submissions`);
-                if (!response.ok) throw new Error('Failed to connect to API');
+                const response = await fetch(`${API_BASE_URL}/api/public/view-submissions?pwd=${encodeURIComponent(pwd)}`);
+                
+                if (response.status === 403) {
+                    app.innerHTML = `
+                        <div class="auth-error">
+                            <h2 style="color: #ef4444">Access Denied</h2>
+                            <p>The password provided in the URL is incorrect.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Failed to fetch data');
                 
                 allData = await response.json();
                 renderTable(allData);
                 updateStats(allData);
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error: ${err.message}. Make sure the API_URL is correct and the server is running.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error: ${err.message}</td></tr>`;
             }
         }
 
         function renderTable(data) {
             const tableBody = document.getElementById('tableBody');
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">No submissions found.</td></tr>';
+                return;
+            }
+
             tableBody.innerHTML = data.map((item, index) => `
                 <tr>
-                    <td>${new Date(item.submission_date).toLocaleDateString()}</td>
+                    <td>${new Date(item.created_at).toLocaleDateString()}</td>
                     <td><strong>${item.business_name || 'N/A'}</strong></td>
-                    <td>${item.full_name || 'N/A'}</td>
-                    <td><span class="badge badge-industry">${item.industry || 'General'}</span></td>
-                    <td>${item.launch_date ? '📅 ' + item.launch_date : '---'}</td>
-                    <td><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem" onclick="viewDetails(${index})">View All</button></td>
+                    <td>${item.contact_name || 'N/A'}</td>
+                    <td>${item.email || 'N/A'}</td>
+                    <td><span class="tag">${item.status}</span><br><small>Pay: ${item.payment_status || 'unpaid'}</small></td>
+                    <td><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem" onclick="viewDetails(${index})">View Details</button></td>
                 </tr>
             `).join('');
         }
@@ -222,7 +291,7 @@
         function updateStats(data) {
             document.getElementById('totalCount').textContent = data.length;
             if (data.length > 0) {
-                document.getElementById('lastDate').textContent = new Date(data[0].submission_date).toLocaleDateString();
+                document.getElementById('lastDate').textContent = new Date(data[0].created_at).toLocaleDateString();
             }
         }
 
@@ -231,65 +300,90 @@
             const modalBody = document.getElementById('modalBody');
             const modal = document.getElementById('detailModal');
 
-            const fields = {
-                "Client Info": ["full_name", "business_name", "email", "phone", "industry", "contact_method"],
-                "Store Overview": ["product_types", "product_count", "usp", "target_audience"],
-                "Design": ["logo_status", "brand_colors", "tone_style", "inspiration_sites"],
-                "Files": ["brand_files", "product_samples", "legal_docs"],
-                "Operations": ["inventory_tracking", "product_variations", "payment_gateways", "currencies", "shipping_methods"],
-                "Technical": ["domain_status", "hosting_pref", "legal_policies", "compliance_reqs"],
-                "Planning": ["launch_date", "budget_range", "maintenance_needs"],
-                "Vision": ["vision_desc"]
-            };
+            let html = `
+                <div class="section-title">Business Information</div>
+                <div class="detail-item"><label>Business Name</label><div>${item.business_name}</div></div>
+                <div class="detail-item"><label>Government Business Tax Number</label><div>${item.government_tax_number || '-'}</div></div>
+                <div class="detail-item"><label>Collection Business Tax Number</label><div>${item.collection_business_tax_number || '-'}</div></div>
+                <div class="detail-item full-width"><label>Address</label><div>${item.address || '-'}</div></div>
+                <div class="detail-item"><label>Facebook</label><div>${item.facebook_url || '-'}</div></div>
+                <div class="detail-item"><label>LinkedIn</label><div>${item.linkedin_url || '-'}</div></div>
+                <div class="detail-item"><label>Instagram</label><div>${item.instagram_url || '-'}</div></div>
+                <div class="detail-item"><label>TikTok</label><div>${item.tiktok_url || '-'}</div></div>
+                <div class="detail-item full-width"><label>Other Platform</label><div>${item.other_social_url || '-'}</div></div>
+                <div class="detail-item full-width"><label>Links Summary</label><div>${item.social_links || '-'}</div></div>
 
-            let html = '';
-            for (const [section, keys] of Object.entries(fields)) {
-                html += `<div style="grid-column: 1 / -1; margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>${section}</strong></div>`;
-                keys.forEach(key => {
-                    let value = item[key];
-                    let displayValue = '---';
+                <div class="section-title">Personal Information</div>
+                <div class="detail-item"><label>Name</label><div>${item.first_name || '-'}</div></div>
+                <div class="detail-item"><label>Middle Name</label><div>${item.middle_name || '-'}</div></div>
+                <div class="detail-item"><label>Surname</label><div>${item.surname || '-'}</div></div>
+                <div class="detail-item"><label>NID Number</label><div>${item.nid_number || '-'}</div></div>
+                <div class="detail-item"><label>Email</label><div>${item.email}</div></div>
+                <div class="detail-item"><label>Phone</label><div>${item.phone || '-'}</div></div>
+                <div class="detail-item full-width"><label>Home Address</label><div>${item.home_address || '-'}</div></div>
 
-                    if (value) {
-                        if (Array.isArray(value)) {
-                            // If it's a file list, make links
-                            if (key.includes('_files') || key.includes('samples') || key.includes('_docs')) {
-                                displayValue = value.map(path => {
-                                    const fullUrl = `${API_URL}/${path.replace(/\\/g, '/')}`;
-                                    const fileName = path.split(/[\\/]/).pop();
-                                    const ext = fileName.split('.').pop().toLowerCase();
-                                    
-                                    let mediaHtml = '';
-                                    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
-                                        mediaHtml = `<img src="${fullUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; cursor: pointer;" onclick="window.open('${fullUrl}')">`;
-                                    } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
-                                        mediaHtml = `<video src="${fullUrl}" controls style="max-width: 100%; border-radius: 8px; margin-top: 5px;"></video>`;
-                                    } else {
-                                        mediaHtml = `<p style="font-size: 0.8rem; color: #64748b;">(Click to download file)</p>`;
-                                    }
+                <div class="section-title">Homepage Content</div>
+                <div class="detail-item full-width"><label>Short Description</label><div>${item.short_description || '-'}</div></div>
+                <div class="detail-item full-width"><label>Services</label><div>${item.services || '-'}</div></div>
+                <div class="detail-item"><label>Unique Point</label><div>${item.unique_point || '-'}</div></div>
+                <div class="detail-item"><label>Target Audience</label><div>${item.audience || '-'}</div></div>
 
-                                    return `
-                                        <div style="margin-bottom: 12px; background: #f1f5f9; padding: 8px; border-radius: 8px;">
-                                            <a href="${fullUrl}" target="_blank" download style="color: var(--primary); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">📂 ${fileName}</a>
-                                            ${mediaHtml}
-                                        </div>
-                                    `;
-                                }).join('');
-                            } else {
-                                displayValue = value.join(', ');
-                            }
-                        } else {
-                            displayValue = value;
-                        }
-                    }
+                <div class="section-title">About Page Content</div>
+                <div class="detail-item full-width"><label>About Us Description</label><div>${item.about_description || '-'}</div></div>
+                <div class="detail-item full-width"><label>Our Story</label><div>${item.story || '-'}</div></div>
+                <div class="detail-item"><label>Mission</label><div>${item.mission || '-'}</div></div>
+                <div class="detail-item"><label>Achievements</label><div>${item.achievements || '-'}</div></div>
+                
+                <div class="section-title">Media</div>
+                <div class="detail-item">
+                    <label>ID-Size Portrait Photo</label>
+                    ${item.portrait_url ? `<img src="${item.portrait_url}" class="img-preview" onclick="window.open('${item.portrait_url}')">` : 'None'}
+                </div>
+                <div class="detail-item">
+                    <label>Logo</label>
+                    ${item.logo_url ? `<img src="${item.logo_url}" class="img-preview" onclick="window.open('${item.logo_url}')">` : 'None'}
+                </div>
+                <div class="detail-item"><label>Brand Colors</label><div>${item.brand_colors || '-'}</div></div>
+                <div class="detail-item"><label>Website Style</label><div>${item.website_style || '-'}</div></div>
+                <div class="detail-item full-width"><label>Example Websites</label><div>${item.example_websites || '-'}</div></div>
 
-                    html += `
-                        <div class="detail-item">
-                            <label>${key.replace(/_/g, ' ')}</label>
-                            <div>${displayValue}</div>
+                <div class="section-title">Website Build</div>
+                <div class="detail-item full-width"><label>Website Build Type</label><div>${item.website_build_type || '-'}</div></div>
+
+                <div class="section-title">Payment</div>
+                <div class="detail-item"><label>Payment Status</label><div>${item.payment_status || '-'}</div></div>
+                <div class="detail-item"><label>Transaction ID</label><div>${item.payment_txn_id || '-'}</div></div>
+                <div class="detail-item"><label>Payment Amount</label><div>${item.payment_amount || '-'}</div></div>
+                <div class="detail-item"><label>Payment Currency</label><div>${item.payment_currency || '-'}</div></div>
+                <div class="detail-item full-width"><label>Paid At</label><div>${item.paid_at ? new Date(item.paid_at).toLocaleString() : '-'}</div></div>
+
+                <div class="section-title">Store Policies</div>
+                <div class="detail-item full-width"><label>Policy Details</label><div>${item.store_policies_text || '-'}</div></div>
+                <div class="detail-item full-width"><label>Policy PDF</label><div>${item.store_policies_pdf_url ? `<a href="${item.store_policies_pdf_url}" target="_blank" rel="noopener noreferrer">Open uploaded PDF</a>` : '-'}</div></div>
+
+                <div class="section-title">Products (${(item.products || []).length})</div>
+                <div class="full-width">
+                    ${(item.products || []).map((p, i) => `
+                        <div class="product-card">
+                            <div style="font-weight:700; margin-bottom: 8px;">Product ${i+1}: ${p.name}</div>
+                            <div class="detail-grid">
+                                <div class="detail-item"><label>Price</label><div>${p.price || '-'}</div></div>
+                                <div class="detail-item"><label>Category</label><div>${p.category || '-'}</div></div>
+                                <div class="detail-item"><label>Stock</label><div>${p.stock || '-'}</div></div>
+                                <div class="detail-item full-width"><label>Description</label><div>${p.description || '-'}</div></div>
+                                <div class="detail-item full-width">
+                                    <label>Images</label>
+                                    ${(p.images || []).map(img => `<img src="${img}" class="img-preview" onclick="window.open('${img}')">`).join('') || 'No images'}
+                                </div>
+                            </div>
                         </div>
-                    `;
-                });
-            }
+                    `).join('') || 'No products submitted.'}
+                </div>
+
+                <div class="section-title">Additional Info</div>
+                <div class="detail-item full-width"><label>Notes</label><div>${item.notes || '-'}</div></div>
+                <div class="detail-item full-width"><label>Requested Features</label><div>${item.requested_features || '-'}</div></div>
+            `;
 
             modalBody.innerHTML = html;
             modal.style.display = 'flex';
@@ -299,37 +393,13 @@
             document.getElementById('detailModal').style.display = 'none';
         }
 
-        function downloadCSV() {
-            if (allData.length === 0) return alert('No data to export');
-            
-            const headers = Object.keys(allData[0]);
-            const rows = allData.map(item => 
-                headers.map(header => {
-                    let val = item[header] || '';
-                    if (Array.isArray(val)) val = val.join('|');
-                    return `"${String(val).replace(/"/g, '""')}"`;
-                }).join(',')
-            );
-
-            const csvContent = [headers.join(','), ...rows].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `webstore_submissions_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
         // Search Filter
         document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const filtered = allData.filter(item => 
                 (item.business_name || '').toLowerCase().includes(term) ||
-                (item.full_name || '').toLowerCase().includes(term) ||
-                (item.industry || '').toLowerCase().includes(term)
+                (item.contact_name || '').toLowerCase().includes(term) ||
+                (item.email || '').toLowerCase().includes(term)
             );
             renderTable(filtered);
         });

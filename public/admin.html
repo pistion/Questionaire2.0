@@ -210,7 +210,7 @@
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="loginPassword" placeholder="••••••••">
+                <input type="password" id="loginPassword" placeholder="Enter your password">
             </div>
             <button class="btn btn-primary" id="loginBtn" style="width: 100%">Sign In</button>
         </div>
@@ -369,7 +369,7 @@
                     <td><strong>${item.business_name || 'N/A'}</strong></td>
                     <td>${item.contact_name || 'N/A'}<br><small>${item.email}</small></td>
                     <td>${item.product_count}</td>
-                    <td><span class="badge badge-status">${item.status}</span></td>
+                    <td><span class="badge badge-status">${item.status}</span><br><small>Pay: ${item.payment_status || 'unpaid'}</small></td>
                     <td><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem" onclick="viewDetails(${item.id})">View All</button></td>
                 </tr>
             `).join('');
@@ -387,14 +387,29 @@
                 const item = data.item;
 
                 document.getElementById("modalTitle").textContent = item.business_name;
-                document.getElementById("modalSubtitle").textContent = `${item.contact_name} · ${item.email} · ${item.phone || 'No phone'}`;
+                document.getElementById("modalSubtitle").textContent = `${item.contact_name} | ${item.email} | ${item.phone || 'No phone'}`;
                 document.getElementById("updateStatus").value = item.status;
 
                 const fields = {
                     "Business Info": {
                         "address": item.address,
+                        "government_tax_number": item.government_tax_number,
+                        "collection_business_tax_number": item.collection_business_tax_number,
                         "social_links": item.social_links,
-                        "notes": item.notes
+                        "facebook_url": item.facebook_url,
+                        "linkedin_url": item.linkedin_url,
+                        "instagram_url": item.instagram_url,
+                        "tiktok_url": item.tiktok_url,
+                        "other_social_url": item.other_social_url
+                    },
+                    "Personal Info": {
+                        "first_name": item.first_name,
+                        "middle_name": item.middle_name,
+                        "surname": item.surname,
+                        "nid_number": item.nid_number,
+                        "email": item.email,
+                        "phone": item.phone,
+                        "home_address": item.home_address
                     },
                     "Core Content": {
                         "short_description": item.short_description,
@@ -411,7 +426,24 @@
                     "Branding & Style": {
                         "brand_colors": item.brand_colors,
                         "website_style": item.website_style,
-                        "example_websites": item.example_websites,
+                        "example_websites": item.example_websites
+                    },
+                    "Website Build": {
+                        "website_build_type": item.website_build_type
+                    },
+                    "Payment": {
+                        "payment_status": item.payment_status,
+                        "payment_txn_id": item.payment_txn_id,
+                        "payment_amount": item.payment_amount,
+                        "payment_currency": item.payment_currency,
+                        "paid_at": item.paid_at ? new Date(item.paid_at).toLocaleString() : null
+                    },
+                    "Store Policies": {
+                        "store_policies_text": item.store_policies_text,
+                        "store_policies_pdf_url": item.store_policies_pdf_url
+                    },
+                    "Additional Notes": {
+                        "notes": item.notes,
                         "requested_features": item.requested_features
                     }
                 };
@@ -419,10 +451,10 @@
                 let html = '';
                 
                 // Add Images Section
-                html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>PORTRAIT & LOGO</strong></div>`;
+                html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>MEDIA & LOGO</strong></div>`;
                 html += `
                     <div class="detail-item">
-                        <label>Portrait</label>
+                        <label>ID-Size Portrait Photo</label>
                         ${item.portrait_url ? `<img src="${item.portrait_url}" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd; cursor: pointer" onclick="window.open('${item.portrait_url}')">` : 'N/A'}
                     </div>
                     <div class="detail-item">
@@ -434,10 +466,15 @@
                 for (const [section, dataMap] of Object.entries(fields)) {
                     html += `<div class="full" style="margin-top: 1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;"><strong>${section.toUpperCase()}</strong></div>`;
                     for (const [key, val] of Object.entries(dataMap)) {
+                        const displayValue = !val
+                            ? '---'
+                            : ['facebook_url', 'linkedin_url', 'instagram_url', 'tiktok_url', 'other_social_url', 'store_policies_pdf_url'].includes(key)
+                                ? `<a href="${val}" target="_blank" rel="noopener noreferrer">${val}</a>`
+                                : String(val).replace(/\n/g, '<br>');
                         html += `
-                            <div class="detail-item ${['short_description', 'services', 'about_description', 'story', 'social_links'].includes(key) ? 'full' : ''}">
+                            <div class="detail-item ${['short_description', 'services', 'about_description', 'story', 'social_links', 'store_policies_text'].includes(key) ? 'full' : ''}">
                                 <label>${key.replace(/_/g, ' ')}</label>
-                                <div>${(val || '---').replace(/\n/g, '<br>')}</div>
+                                <div>${displayValue}</div>
                             </div>
                         `;
                     }

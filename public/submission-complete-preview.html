@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Submitted Successfully</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#eff7f0;
+      --card:#ffffff;
+      --text:#112218;
+      --muted:#5f7465;
+      --line:#d6e5d8;
+      --brand:#1e7c4a;
+      --brand-deep:#125634;
+      --brand-soft:#e4f5e8;
+      --shadow:0 30px 70px rgba(18,86,52,.14);
+      --radius:28px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:"Plus Jakarta Sans",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(30,124,74,.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(52,211,153,.18), transparent 30%),
+        linear-gradient(180deg, #f7fcf7 0%, var(--bg) 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 16px;
+    }
+
+    .success-shell{
+      width:min(100%, 920px);
+      display:grid;
+      gap:18px;
+    }
+
+    .success-card{
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(214,229,216,.92);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      backdrop-filter:blur(12px);
+    }
+
+    .success-inner{
+      padding:34px 32px 30px;
+    }
+
+    .brand-row{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .brand-logo{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      background:#123423;
+      padding:10px;
+      box-shadow:0 16px 36px rgba(18,52,35,.18);
+      object-fit:contain;
+    }
+
+    .brand-copy{
+      display:grid;
+      gap:4px;
+    }
+
+    .brand-kicker{
+      display:inline-flex;
+      align-items:center;
+      width:max-content;
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--brand-soft);
+      color:var(--brand);
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+
+    .brand-copy strong{
+      font-size:1rem;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0,.9fr) minmax(260px,.7fr);
+      gap:28px;
+      align-items:center;
+    }
+
+    .hero-copy h1{
+      margin:0 0 14px;
+      font-size:clamp(2rem, 4vw, 3.3rem);
+      line-height:1.03;
+      letter-spacing:-.03em;
+    }
+
+    .hero-copy p{
+      margin:0;
+      color:var(--muted);
+      font-size:1rem;
+      line-height:1.7;
+    }
+
+    .hero-copy p + p{
+      margin-top:14px;
+    }
+
+    .tick-panel{
+      position:relative;
+      min-height:320px;
+      border-radius:26px;
+      background:
+        linear-gradient(180deg, rgba(228,245,232,.96) 0%, rgba(242,250,243,.98) 100%);
+      border:1px solid #cfe6d5;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      isolation:isolate;
+    }
+
+    .tick-panel::before,
+    .tick-panel::after{
+      content:"";
+      position:absolute;
+      border-radius:999px;
+      background:rgba(30,124,74,.08);
+      z-index:-1;
+    }
+
+    .tick-panel::before{
+      width:220px;
+      height:220px;
+      top:-60px;
+      right:-40px;
+    }
+
+    .tick-panel::after{
+      width:180px;
+      height:180px;
+      bottom:-55px;
+      left:-30px;
+    }
+
+    .tick-stack{
+      display:grid;
+      justify-items:center;
+      gap:18px;
+      text-align:center;
+      padding:26px;
+    }
+
+    .tick-ring{
+      width:146px;
+      height:146px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at 30% 25%, #5fe39f 0%, #1e7c4a 65%, #125634 100%);
+      box-shadow:
+        0 24px 50px rgba(18,86,52,.22),
+        inset 0 2px 0 rgba(255,255,255,.35);
+    }
+
+    .tick-ring svg{
+      width:68px;
+      height:68px;
+      display:block;
+    }
+
+    .tick-stack strong{
+      font-size:1.1rem;
+      letter-spacing:.01em;
+    }
+
+    .tick-stack span{
+      max-width:220px;
+      color:var(--muted);
+      line-height:1.6;
+      font-size:.92rem;
+    }
+
+    .message-grid{
+      margin-top:28px;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+
+    .message-card{
+      padding:18px;
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:#fbfefb;
+    }
+
+    .message-card strong{
+      display:block;
+      margin-bottom:8px;
+      font-size:.96rem;
+    }
+
+    .message-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:.92rem;
+      line-height:1.65;
+    }
+
+    .success-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:14px;
+      padding:0 32px 32px;
+    }
+
+    .action-btn{
+      flex:1 1 240px;
+      min-height:58px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      border-radius:18px;
+      padding:0 22px;
+      font-weight:800;
+      text-decoration:none;
+      transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .action-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .action-btn-primary{
+      color:#fff;
+      background:linear-gradient(135deg, var(--brand) 0%, #26a15e 100%);
+      box-shadow:0 18px 30px rgba(30,124,74,.2);
+    }
+
+    .action-btn-secondary{
+      color:var(--brand-deep);
+      background:#fff;
+      border:1px solid #c6ddcd;
+      box-shadow:0 12px 26px rgba(17,34,24,.05);
+    }
+
+    .action-btn-secondary[data-disabled="true"]{
+      opacity:.92;
+    }
+
+    .footer-note{
+      padding:0 32px 32px;
+      color:var(--muted);
+      font-size:.88rem;
+      line-height:1.6;
+    }
+
+    @media (max-width:860px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+
+      .tick-panel{
+        min-height:260px;
+      }
+
+      .message-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:560px){
+      .success-inner{
+        padding:24px 20px 20px;
+      }
+
+      .success-actions,
+      .footer-note{
+        padding-left:20px;
+        padding-right:20px;
+      }
+
+      .brand-row{
+        align-items:flex-start;
+      }
+
+      .brand-logo{
+        width:52px;
+        height:52px;
+      }
+
+      .tick-ring{
+        width:126px;
+        height:126px;
+      }
+
+      .tick-ring svg{
+        width:58px;
+        height:58px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="success-shell">
+    <section class="success-card">
+      <div class="success-inner">
+        <div class="brand-row">
+          <img class="brand-logo" src="/glondia-logo.png" alt="Glondia Analysts & Consultancy logo" />
+          <div class="brand-copy">
+            <span class="brand-kicker">Submission Complete</span>
+            <strong>Glondia Analysts &amp; Consultancy</strong>
+          </div>
+        </div>
+
+        <div class="hero">
+          <div class="hero-copy">
+            <h1>Your application is submitted successfully.</h1>
+            <p>Your payment will be processed and your website will now be started on by our team.</p>
+            <p>Please check your email for updates on the progress. Thank you for choosing Glondia Analysts &amp; Consultancy, and we look forward to working with you.</p>
+          </div>
+
+          <div class="tick-panel">
+            <div class="tick-stack">
+              <div class="tick-ring" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 33.5L28 43.5L47 22.5" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <strong>Payment Received</strong>
+              <span>Your submission has moved into the next stage and our team will continue from here.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-grid">
+          <div class="message-card">
+            <strong>What Happens Next</strong>
+            <p>We will review your submission details, confirm the payment status, and begin the website preparation workflow.</p>
+          </div>
+          <div class="message-card">
+            <strong>Email Updates</strong>
+            <p>You will receive progress updates by email so you can follow the next steps without needing to return to this form.</p>
+          </div>
+          <div class="message-card">
+            <strong>Support Ready</strong>
+            <p>If anything needs clarification, the Glondia team will contact you directly using the details from your application.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <a class="action-btn action-btn-primary" href="/">Submit Another Form</a>
+        <a class="action-btn action-btn-secondary" href="#" data-disabled="true" onclick="return false;">Visit Glondia Website</a>
+      </div>
+
+      <div class="footer-note">
+        The Glondia website button is left as a separate preview placeholder for now, so we can finalize the UI design before wiring it into the main live flow.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -108,7 +108,7 @@ async function loadSubmissions() {
       <td>${item.business_name || ""}</td>
       <td>${item.contact_name || ""}</td>
       <td>${item.email || ""}</td>
-      <td><span class="tag">${item.status}</span></td>
+      <td><span class="tag">${item.status}</span><br><small>Pay: ${item.payment_status || "unpaid"}</small></td>
       <td>${item.product_count}</td>
       <td>${new Date(item.created_at).toLocaleString()}</td>
       <td><button class="add-btn" data-id="${item.id}">View</button></td>
@@ -132,7 +132,7 @@ async function loadDetail(id) {
     <div class="topbar">
       <div>
         <h2 style="margin:0">${item.business_name}</h2>
-        <p class="muted" style="margin:.35rem 0 0">${item.contact_name} · ${item.email}</p>
+        <p class="muted" style="margin:.35rem 0 0">${item.contact_name} | ${item.email}</p>
       </div>
       <div class="actions">
         <select id="detailStatus">
@@ -145,15 +145,48 @@ async function loadDetail(id) {
     <div class="grid">
       <div class="section">
         <h2>Business</h2>
-        <p><strong>Phone:</strong> ${item.phone || "-"}</p>
         <p><strong>Address:</strong> ${item.address || "-"}</p>
-        <p><strong>Social Links:</strong><br>${(item.social_links || "-").replace(/\n/g, "<br>")}</p>
+        <p><strong>Government Business Tax Number:</strong> ${item.government_tax_number || "-"}</p>
+        <p><strong>Collection Business Tax Number:</strong> ${item.collection_business_tax_number || "-"}</p>
+        <p><strong>Facebook:</strong> ${item.facebook_url || "-"}</p>
+        <p><strong>LinkedIn:</strong> ${item.linkedin_url || "-"}</p>
+        <p><strong>Instagram:</strong> ${item.instagram_url || "-"}</p>
+        <p><strong>TikTok:</strong> ${item.tiktok_url || "-"}</p>
+        <p><strong>Other Platform:</strong> ${item.other_social_url || "-"}</p>
+        <p><strong>Links Summary:</strong><br>${(item.social_links || "-").replace(/\n/g, "<br>")}</p>
+      </div>
+      <div class="section">
+        <h2>Personal Information</h2>
+        <p><strong>Name:</strong> ${item.first_name || "-"}</p>
+        <p><strong>Middle Name:</strong> ${item.middle_name || "-"}</p>
+        <p><strong>Surname:</strong> ${item.surname || "-"}</p>
+        <p><strong>NID Number:</strong> ${item.nid_number || "-"}</p>
+        <p><strong>Email Address:</strong> ${item.email || "-"}</p>
+        <p><strong>Phone:</strong> ${item.phone || "-"}</p>
+        <p><strong>Home Address:</strong> ${item.home_address || "-"}</p>
       </div>
       <div class="section">
         <h2>Branding</h2>
         <p><strong>Colors:</strong> ${item.brand_colors || "-"}</p>
         <p><strong>Style:</strong> ${item.website_style || "-"}</p>
         <p><strong>Examples:</strong><br>${(item.example_websites || "-").replace(/\n/g, "<br>")}</p>
+      </div>
+      <div class="section">
+        <h2>Website Build</h2>
+        <p><strong>Preferred Build Type:</strong> ${item.website_build_type || "-"}</p>
+      </div>
+      <div class="section">
+        <h2>Payment</h2>
+        <p><strong>Payment Status:</strong> ${item.payment_status || "-"}</p>
+        <p><strong>Transaction ID:</strong> ${item.payment_txn_id || "-"}</p>
+        <p><strong>Amount:</strong> ${item.payment_amount || "-"}</p>
+        <p><strong>Currency:</strong> ${item.payment_currency || "-"}</p>
+        <p><strong>Paid At:</strong> ${item.paid_at ? new Date(item.paid_at).toLocaleString() : "-"}</p>
+      </div>
+      <div class="section full">
+        <h2>Store Policies</h2>
+        <p><strong>Policy Details:</strong><br>${(item.store_policies_text || "-").replace(/\n/g, "<br>")}</p>
+        <p><strong>Policy PDF:</strong> ${item.store_policies_pdf_url ? `<a href="${item.store_policies_pdf_url}" target="_blank" rel="noopener noreferrer">Open uploaded PDF</a>` : "-"}</p>
       </div>
       <div class="section full">
         <h2>Homepage Content</h2>
@@ -170,7 +203,8 @@ async function loadDetail(id) {
         <p><strong>Achievements:</strong><br>${(item.achievements || "-").replace(/\n/g, "<br>")}</p>
       </div>
       <div class="section">
-        <h2>Portrait</h2>
+        <h2>Media</h2>
+        <p><strong>ID-Size Portrait Photo:</strong></p>
         ${item.portrait_url ? `<img src="${item.portrait_url}" alt="" style="max-width:100%;border-radius:12px;border:1px solid #dbe3ee" />` : '<p class="muted">No portrait uploaded</p>'}
       </div>
       <div class="section">

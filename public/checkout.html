@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout Payment</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="checkout-page">
+  <main class="checkout-shell">
+    <div class="checkout-hero">
+      <section class="checkout-card checkout-main-card">
+        <span class="checkout-kicker">Submission Received</span>
+        <h1>Checkout Payment</h1>
+        <p class="checkout-lead">Choose one of the payment options below to continue with your website setup payment.</p>
+
+        <div class="checkout-reference">
+          <div class="info-block">
+            <span class="label">Business</span>
+            <span class="value" id="businessNameValue">Your business</span>
+          </div>
+          <div class="info-block">
+            <span class="label">Customer</span>
+            <span class="value" id="customerNameValue">Pending</span>
+          </div>
+          <div class="info-block">
+            <span class="label">Submission Reference</span>
+            <span class="value" id="submissionReferenceValue">Pending</span>
+          </div>
+        </div>
+
+        <div class="checkout-note">
+          <p id="checkoutStatusMessage">Complete payment using PayPal or Manual Banking.</p>
+        </div>
+
+        <div class="payment-methods">
+          <article class="payment-option payment-option-paypal">
+            <div class="payment-option-copy">
+              <span class="payment-badge">Recommended</span>
+              <h2>PayPal</h2>
+              <p>Pay online using PayPal for a faster checkout experience.</p>
+            </div>
+            <a
+              class="paypal-btn"
+              id="paypalBtn"
+              href="https://www.paypal.com/ncp/payment/QPWYGR3VT9PSQ"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Continue to PayPal
+            </a>
+            <p class="payment-quote-note" id="paypalQuoteValue">Stored PayPal quote: Pending</p>
+            <p class="payment-link-note" id="paypalRateNote">This opens your secure PayPal payment page in a new tab using the fixed amount configured in PayPal.</p>
+          </article>
+
+          <article class="payment-option payment-option-banking">
+            <div class="payment-option-header">
+              <div class="payment-option-copy">
+                <span class="payment-badge payment-badge-soft">Manual Option</span>
+                <h2>Manual Banking</h2>
+                <p>Choose your banking method, then upload the receipt after payment is completed.</p>
+              </div>
+              <button type="button" class="mobile-toggle-btn" id="mobileBankingToggleBtn" aria-expanded="false" aria-controls="mobileBankingPanel">
+                Open Manual Banking
+              </button>
+            </div>
+
+            <div class="mobile-banking-panel" id="mobileBankingPanel" aria-hidden="true" inert>
+              <div class="mobile-banking-panel-inner">
+                <div class="field full">
+                  <label for="mobileBankingProvider">Banking Method</label>
+                  <select id="mobileBankingProvider">
+                    <option value="">Select a banking method</option>
+                    <option>Mobile Banking</option>
+                    <option>Internet Banking</option>
+                    <option>Cash Deposit</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label for="mobileBankingReceipt">Upload Banking Receipt</label>
+                  <input id="mobileBankingReceipt" type="file" accept="image/*,.pdf,application/pdf" />
+                  <p class="hint">Attach the screenshot or PDF receipt from your completed bank payment.</p>
+                  <div id="mobileBankingReceiptFiles" class="file-list"></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="checkout-actions">
+          <a class="ghost-btn checkout-back-link" href="/">Back to Form</a>
+        </div>
+      </section>
+
+      <aside class="checkout-card amount-panel receipt-card">
+        <div class="receipt-edge receipt-edge-top" aria-hidden="true"></div>
+        <div class="receipt-body">
+          <div class="receipt-head">
+            <div class="receipt-brand">
+              <img class="receipt-brand-logo" src="/glondia-logo.png" alt="Glondia Analysts & Consultancy logo" />
+              <div class="receipt-brand-copy">
+                <span class="receipt-kicker">Payment Summary</span>
+                <strong>Glondia Analysts & Consultancy</strong>
+              </div>
+            </div>
+            <h2 class="amount-title">Customer Receipt</h2>
+            <p class="amount-caption">Website setup payment breakdown.</p>
+          </div>
+
+          <div class="receipt-meta">
+            <div class="receipt-meta-row">
+              <span>Business</span>
+              <strong id="receiptBusinessValue">Your business</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Customer</span>
+              <strong id="receiptCustomerValue">Pending</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Email</span>
+              <strong id="receiptEmailValue">Pending</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Phone</span>
+              <strong id="receiptPhoneValue">Pending</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Date</span>
+              <strong id="receiptDateValue">Today</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Reference</span>
+              <strong id="receiptReferenceValue">Pending</strong>
+            </div>
+          </div>
+
+          <div class="receipt-rule"></div>
+
+          <div class="amount-breakdown receipt-lines">
+            <div class="amount-line receipt-line">
+              <div>
+                <strong>Domain Name</strong>
+                <span>Registration and setup</span>
+              </div>
+              <strong id="domainAmountValue">K100</strong>
+            </div>
+            <div class="amount-line receipt-line">
+              <div>
+                <strong>Hosting</strong>
+                <span>Initial hosting allocation</span>
+              </div>
+              <strong id="hostingAmountValue">K100</strong>
+            </div>
+          </div>
+
+          <div class="receipt-rule"></div>
+
+          <div class="receipt-subtotal">
+            <span>Subtotal</span>
+            <strong id="totalAmountValue">K200</strong>
+          </div>
+
+          <div class="receipt-subtotal">
+            <span>Tax (10%)</span>
+            <strong id="taxAmountValue">K20</strong>
+          </div>
+
+          <div class="amount-final receipt-total">
+            <span>Total</span>
+            <span id="finalAmountValue">K220</span>
+          </div>
+
+          <div class="receipt-subtotal receipt-subtotal-highlight">
+            <span>Stored PayPal Quote</span>
+            <strong id="storedQuoteAmountValue">Pending</strong>
+          </div>
+
+        </div>
+        <div class="receipt-edge receipt-edge-bottom" aria-hidden="true"></div>
+      </aside>
+    </div>
+
+    <section class="checkout-card banking-footer">
+      <div class="banking-footer-grid">
+        <div>
+          <span class="label">Account Name</span>
+          <p>John Wesley Tawa</p>
+        </div>
+        <div>
+          <span class="label">Business</span>
+          <p>Glondia Analysts &amp; Consultancy</p>
+        </div>
+        <div>
+          <span class="label">BSP Account Number</span>
+          <p>0001235611</p>
+        </div>
+        <div>
+          <span class="label">Alternative BSP Account Number</span>
+          <p>0000242010</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="paymentSuccessModalOverlay">
+    <div class="modal success" id="paymentSuccessModal">
+      <div class="modal-icon" id="paymentSuccessIcon">&#10003;</div>
+      <h2 id="paymentSuccessTitle">Payment Submission Complete</h2>
+      <p id="paymentSuccessMessage">Your PayPal payment has been completed successfully.</p>
+      <div id="paymentSuccessDetails" class="modal-details hidden"></div>
+      <button class="modal-btn" id="paymentSuccessCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pendingSubmissionStorageKey = "paypalPendingSubmission";
+    const returnTransactionId = params.get("tx") || "";
+    const returnStatus = params.get("st") || "";
+    const returnAmount = params.get("amt") || "";
+    const returnCurrency = (params.get("cc") || "").toUpperCase();
+
+    function loadPendingSubmission() {
+      try {
+        return JSON.parse(localStorage.getItem(pendingSubmissionStorageKey) || "null");
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function savePendingSubmission(data) {
+      localStorage.setItem(pendingSubmissionStorageKey, JSON.stringify(data));
+    }
+
+    function clearPendingSubmission() {
+      localStorage.removeItem(pendingSubmissionStorageKey);
+    }
+
+    const pendingSubmission = loadPendingSubmission();
+    const fallbackSubmissionId = params.get("submissionId") || pendingSubmission?.submissionId || "";
+
+    const businessNameValue = document.getElementById("businessNameValue");
+    const customerNameValue = document.getElementById("customerNameValue");
+    const submissionReferenceValue = document.getElementById("submissionReferenceValue");
+    const totalAmountValue = document.getElementById("totalAmountValue");
+    const taxAmountValue = document.getElementById("taxAmountValue");
+    const domainAmountValue = document.getElementById("domainAmountValue");
+    const hostingAmountValue = document.getElementById("hostingAmountValue");
+    const finalAmountValue = document.getElementById("finalAmountValue");
+    const storedQuoteAmountValue = document.getElementById("storedQuoteAmountValue");
+    const receiptBusinessValue = document.getElementById("receiptBusinessValue");
+    const receiptCustomerValue = document.getElementById("receiptCustomerValue");
+    const receiptEmailValue = document.getElementById("receiptEmailValue");
+    const receiptPhoneValue = document.getElementById("receiptPhoneValue");
+    const receiptDateValue = document.getElementById("receiptDateValue");
+    const receiptReferenceValue = document.getElementById("receiptReferenceValue");
+    const checkoutStatusMessage = document.getElementById("checkoutStatusMessage");
+    const paypalBtn = document.getElementById("paypalBtn");
+    const paypalQuoteValue = document.getElementById("paypalQuoteValue");
+    const paypalRateNote = document.getElementById("paypalRateNote");
+    const mobileBankingToggleBtn = document.getElementById("mobileBankingToggleBtn");
+    const mobileBankingPanel = document.getElementById("mobileBankingPanel");
+    const mobileBankingReceipt = document.getElementById("mobileBankingReceipt");
+    const mobileBankingReceiptFiles = document.getElementById("mobileBankingReceiptFiles");
+    const paymentSuccessModalOverlay = document.getElementById("paymentSuccessModalOverlay");
+    const paymentSuccessModal = document.getElementById("paymentSuccessModal");
+    const paymentSuccessTitle = document.getElementById("paymentSuccessTitle");
+    const paymentSuccessMessage = document.getElementById("paymentSuccessMessage");
+    const paymentSuccessDetails = document.getElementById("paymentSuccessDetails");
+    const paymentSuccessCloseBtn = document.getElementById("paymentSuccessCloseBtn");
+
+    let currentCheckoutData = null;
+
+    function formatKina(amount) {
+      const rounded = Math.round((Number(amount) || 0) * 100) / 100;
+      return `K${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(2)}`;
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "Pending";
+      }
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime())
+        ? "Pending"
+        : parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function formatUsd(amount) {
+      const rounded = Math.round((Number(amount) || 0) * 100) / 100;
+      return `$${rounded.toFixed(2)}`;
+    }
+
+    function applyCheckoutData(data) {
+      currentCheckoutData = data;
+
+      businessNameValue.textContent = data.businessName || "Your business";
+      customerNameValue.textContent = data.customerName || "Pending";
+      receiptBusinessValue.textContent = data.businessName || "Your business";
+      receiptCustomerValue.textContent = data.customerName || "Pending";
+      receiptEmailValue.textContent = data.customerEmail || "Pending";
+      receiptPhoneValue.textContent = data.customerPhone || "Pending";
+      submissionReferenceValue.textContent = `#${data.submissionId}`;
+      receiptReferenceValue.textContent = `#${data.submissionId}`;
+      receiptDateValue.textContent = formatDate(data.paidAt || Date.now());
+
+      domainAmountValue.textContent = formatKina(data.receipt.domainPgk);
+      hostingAmountValue.textContent = formatKina(data.receipt.hostingPgk);
+      totalAmountValue.textContent = formatKina(data.receipt.subtotalPgk);
+      taxAmountValue.textContent = formatKina(data.receipt.taxPgk);
+      finalAmountValue.textContent = formatKina(data.receipt.totalPgk);
+      storedQuoteAmountValue.textContent = data.receipt.paypalQuoteAmount === null || data.receipt.paypalQuoteAmount === undefined
+        ? "Pending"
+        : `${formatUsd(data.receipt.paypalQuoteAmount)} ${data.receipt.paymentCurrency}`;
+      paypalQuoteValue.textContent = data.receipt.paypalQuoteAmount === null || data.receipt.paypalQuoteAmount === undefined
+        ? "Stored PayPal quote: Pending"
+        : `Stored PayPal quote: ${formatUsd(data.receipt.paypalQuoteAmount)} ${data.receipt.paymentCurrency}`;
+      paypalRateNote.textContent = "This opens your secure PayPal payment page in a new tab using the fixed amount configured in PayPal.";
+
+      if (data.submissionId) {
+        savePendingSubmission({
+          submissionId: data.submissionId,
+          businessName: data.businessName,
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          customerPhone: data.customerPhone,
+          totalPgk: data.receipt.totalPgk,
+          paymentCurrency: data.receipt.paymentCurrency,
+          paypalQuoteAmount: data.receipt.paypalQuoteAmount,
+          savedAt: Date.now()
+        });
+      }
+    }
+
+    function renderReceiptFiles() {
+      mobileBankingReceiptFiles.innerHTML = "";
+      Array.from(mobileBankingReceipt.files || []).forEach((file) => {
+        const chip = document.createElement("div");
+        chip.className = "file-chip";
+        chip.textContent = file.name;
+        mobileBankingReceiptFiles.appendChild(chip);
+      });
+    }
+
+    function showPaymentSuccessModal({
+      title = "Payment Submission Complete",
+      message = "Your PayPal payment has been completed successfully.",
+      details = ""
+    } = {}) {
+      paymentSuccessTitle.textContent = title;
+      paymentSuccessMessage.textContent = message;
+      paymentSuccessDetails.textContent = details;
+      paymentSuccessDetails.classList.toggle("hidden", !details);
+      paymentSuccessModalOverlay.style.display = "flex";
+      setTimeout(() => paymentSuccessModal.classList.add("show"), 10);
+    }
+
+    function hidePaymentSuccessModal() {
+      paymentSuccessModal.classList.remove("show");
+      setTimeout(() => {
+        paymentSuccessModalOverlay.style.display = "none";
+      }, 300);
+    }
+
+    function setManualBankingPanelState(shouldOpen) {
+      mobileBankingPanel.classList.toggle("is-open", shouldOpen);
+      mobileBankingPanel.setAttribute("aria-hidden", String(!shouldOpen));
+      mobileBankingPanel.inert = !shouldOpen;
+      mobileBankingToggleBtn.setAttribute("aria-expanded", String(shouldOpen));
+      mobileBankingToggleBtn.textContent = shouldOpen ? "Hide Manual Banking" : "Open Manual Banking";
+    }
+
+    async function loadCheckoutData() {
+      if (!fallbackSubmissionId) {
+        checkoutStatusMessage.textContent = "No submission reference was found for this checkout page.";
+        return;
+      }
+
+      checkoutStatusMessage.textContent = "Loading your checkout receipt from the database.";
+
+      try {
+        const response = await fetch(`/api/public/checkout/${encodeURIComponent(fallbackSubmissionId)}`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load checkout receipt");
+        }
+
+        applyCheckoutData(data.item);
+        checkoutStatusMessage.textContent = "Receipt loaded from your saved submission. Continue to the fixed PayPal payment page or use manual banking.";
+      } catch (error) {
+        checkoutStatusMessage.textContent = "The checkout page could not load the saved receipt details.";
+        showPaymentSuccessModal({
+          title: "Receipt Load Problem",
+          message: "The page could not load the saved receipt details from the database.",
+          details: error.message
+        });
+      }
+    }
+
+    async function confirmPayPalReturn() {
+      if (!returnTransactionId) {
+        return;
+      }
+
+      const linkedSubmission = currentCheckoutData || loadPendingSubmission() || pendingSubmission;
+
+      if (!linkedSubmission?.submissionId) {
+        checkoutStatusMessage.textContent = `PayPal returned a completed payment with transaction ID ${returnTransactionId}, but this browser no longer has the original submission reference to link it automatically.`;
+        showPaymentSuccessModal({
+          title: "Payment Return Received",
+          message: "Your PayPal payment return was received, but the submission could not be linked automatically in this browser.",
+          details: `Transaction ID: ${returnTransactionId}\nStatus: ${returnStatus || "Returned from PayPal"}`
+        });
+        return;
+      }
+
+      checkoutStatusMessage.textContent = "Your PayPal return was received. We are confirming and linking the transaction now.";
+
+      try {
+        const response = await fetch("/api/public/paypal/confirm-return", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submissionId: linkedSubmission.submissionId,
+            transactionId: returnTransactionId,
+            paymentStatus: returnStatus,
+            amount: returnAmount,
+            currency: returnCurrency
+          })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to confirm PayPal payment return");
+        }
+
+        checkoutStatusMessage.textContent = data.item.paymentStatus === "paid"
+          ? "Your PayPal payment has been verified successfully."
+          : "Your PayPal payment return was linked, but the amount needs review before it can be treated as fully paid.";
+
+        showPaymentSuccessModal({
+          title: data.item.paymentStatus === "paid" ? "Payment Submission Complete" : "Payment Return Received",
+          message: data.item.paymentStatus === "paid"
+            ? "Your PayPal payment has been verified and linked to your submission."
+            : "Your PayPal payment return was linked to this submission, but the amount or currency needs review.",
+          details: `Business: ${linkedSubmission.businessName || currentCheckoutData?.businessName || "Your business"}\nReference: #${linkedSubmission.submissionId}\nTransaction ID: ${returnTransactionId}\nPayment Status: ${data.item.paymentStatus}\nVerification: ${data.item.verificationStatus}`
+        });
+
+        if (data.item.paymentStatus === "paid") {
+          clearPendingSubmission();
+        }
+      } catch (error) {
+        checkoutStatusMessage.textContent = "PayPal returned you to the site, but we could not confirm the payment automatically yet.";
+        showPaymentSuccessModal({
+          title: "Payment Return Received",
+          message: "PayPal returned a payment result, but the site could not finish linking it automatically.",
+          details: `Transaction ID: ${returnTransactionId}\nReason: ${error.message}`
+        });
+      }
+    }
+
+    mobileBankingToggleBtn.addEventListener("click", () => {
+      const shouldOpen = !mobileBankingPanel.classList.contains("is-open");
+      setManualBankingPanelState(shouldOpen);
+    });
+
+    mobileBankingReceipt.addEventListener("change", renderReceiptFiles);
+    paymentSuccessCloseBtn.addEventListener("click", hidePaymentSuccessModal);
+    paymentSuccessModalOverlay.addEventListener("click", (event) => {
+      if (event.target === paymentSuccessModalOverlay) {
+        hidePaymentSuccessModal();
+      }
+    });
+
+    paypalBtn.addEventListener("click", () => {
+      const linkedSubmission = currentCheckoutData || loadPendingSubmission() || pendingSubmission;
+      if (linkedSubmission?.submissionId) {
+        savePendingSubmission({
+          submissionId: linkedSubmission.submissionId,
+          businessName: linkedSubmission.businessName || currentCheckoutData?.businessName,
+          customerName: linkedSubmission.customerName || currentCheckoutData?.customerName,
+          customerEmail: linkedSubmission.customerEmail || currentCheckoutData?.customerEmail,
+          customerPhone: linkedSubmission.customerPhone || currentCheckoutData?.customerPhone,
+          savedAt: Date.now()
+        });
+      }
+      checkoutStatusMessage.textContent = "Opening the secure PayPal checkout in a new tab. Complete your payment there, then return here if needed.";
+    });
+
+    (async () => {
+      await loadCheckoutData();
+      if (returnTransactionId) {
+        await confirmPayPalReturn();
+      }
+    })();
+  </script>
+</body>
+</html>
