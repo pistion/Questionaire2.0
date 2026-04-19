@@ -11,28 +11,26 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: APP_URL
-        fromService:
-          type: web
-          name: questionnaire-saas
-          property: host
+        sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: questionnaire-saas-db
-          property: connectionString
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      - key: PAYPAL_ENV
+        value: live
+      - key: PAYPAL_RECEIVER_EMAIL
+        sync: false
+      - key: PAYPAL_EXPECTED_AMOUNT
+        value: "55.00"
+      - key: PAYPAL_EXPECTED_CURRENCY
+        value: USD
       - key: SEED_ADMIN_NAME
         value: Admin User
       - key: SEED_ADMIN_EMAIL
         sync: false
       - key: SEED_ADMIN_PASSWORD
         sync: false
-
-databases:
-  - name: questionnaire-saas-db
-    plan: starter
-    postgresMajorVersion: "18"

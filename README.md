@@ -80,10 +80,18 @@ The DB init script creates an admin user from these env vars:
 
 1. Push this project to GitHub
 2. Create a new Blueprint in Render using `render.yaml`
-3. Add Cloudinary env vars
+3. Set these environment variables in Render:
+   - `DATABASE_URL`
+   - `APP_URL`
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+   - `PAYPAL_RECEIVER_EMAIL`
+   - `SEED_ADMIN_EMAIL`
+   - `SEED_ADMIN_PASSWORD`
 4. Deploy
 
-`render.yaml` already provisions PostgreSQL and maps the database connection into `DATABASE_URL`. If you deploy elsewhere, just define `DATABASE_URL` in the environment and the app will pick it up automatically.
+`render.yaml` is configured for a manually supplied PostgreSQL connection string in `DATABASE_URL`, which is useful when you are using an external Postgres database instead of a Render-managed database. The fixed PayPal settings are included in the blueprint, while secrets stay manual.
 
 ## Core routes
 
