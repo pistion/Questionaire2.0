@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
 const pool = require("../db");
+const { getPublicAppUrl } = require("../lib/appUrl");
 const {
   getExpectedAmount,
   getExpectedCurrency,
@@ -244,7 +245,7 @@ async function ensurePaymentReceipt(client, questionnaire) {
   }));
 }
 
-function formatReceiptResponse(questionnaire, receipt) {
+function formatReceiptResponse(questionnaire, receipt, publicAppUrl = "") {
   return {
     submissionId: questionnaire.id,
     receiptId: receipt.id,
@@ -256,6 +257,9 @@ function formatReceiptResponse(questionnaire, receipt) {
     paymentStatus: questionnaire.payment_status,
     paymentTransactionId: questionnaire.payment_txn_id,
     paidAt: questionnaire.paid_at,
+    publicAppUrl,
+    paypalReturnUrl: publicAppUrl ? `${publicAppUrl}/checkout` : "",
+    paypalIpnUrl: publicAppUrl ? `${publicAppUrl}/api/public/paypal/ipn` : "",
     paypalHostedLinkUrl: getHostedPaymentLink(),
     receipt: {
       domainPgk: Number(receipt.domain_pgk),
@@ -759,9 +763,10 @@ router.get("/checkout/:submissionId", async (req, res) => {
       }
 
       const receipt = await ensurePaymentReceipt(client, questionnaire);
+      const publicAppUrl = getPublicAppUrl(req);
       res.json({
         success: true,
-        item: formatReceiptResponse(questionnaire, receipt)
+        item: formatReceiptResponse(questionnaire, receipt, publicAppUrl)
       });
     } finally {
       client.release();
@@ -773,6 +778,23 @@ router.get("/checkout/:submissionId", async (req, res) => {
       details: error.message
     });
   }
+});
+
+router.get("/paypal/config", (req, res) => {
+  const publicAppUrl = getPublicAppUrl(req);
+
+  res.json({
+    success: true,
+    item: {
+      publicAppUrl,
+      paypalHostedLinkUrl: getHostedPaymentLink(),
+      paypalReturnUrl: publicAppUrl ? `${publicAppUrl}/checkout` : "",
+      paypalIpnUrl: publicAppUrl ? `${publicAppUrl}/api/public/paypal/ipn` : "",
+      expectedAmount: getExpectedAmount(),
+      expectedCurrency: getExpectedCurrency(),
+      expectedReceiverEmail: getExpectedReceiverEmail()
+    }
+  });
 });
 
 router.post("/questionnaires", async (req, res) => {

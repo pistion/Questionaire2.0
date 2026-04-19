@@ -41,6 +41,7 @@ Then open `http://localhost:3000`
 - On startup, the server validates the DB connection and automatically runs `src/db/schema.sql` to create or update the required tables.
 - If `DATABASE_URL` is missing or invalid, the server now fails fast at startup instead of starting in a broken or preview-only state.
 - For a temporary local setup, local uploads are simple and fast. If you deploy to an ephemeral host later, move uploads to dedicated file storage.
+- For public PayPal callbacks, the app uses `APP_URL` when set and otherwise falls back to Render's `RENDER_EXTERNAL_URL`.
 
 ## PayPal payment callbacks
 
@@ -66,6 +67,8 @@ PayPal account settings to enable:
 2. Turn on `Payment Data Transfer (PDT)` so PayPal returns a transaction token (`tx`) to the checkout page
 3. Turn on `IPN` and set the listener URL to `${APP_URL}/api/public/paypal/ipn`
 
+If `APP_URL` is not set in production on Render, the app can use Render's default external URL automatically for those callback paths.
+
 Important limitation:
 
 - The checkout receipt is saved in the database with the customer snapshot and the pricing breakdown in Papua New Guinean Kina (PGK).
@@ -85,13 +88,14 @@ The DB init script creates an admin user from these env vars:
 2. Create a new Blueprint in Render using `render.yaml`
 3. Set these environment variables in Render:
    - `DATABASE_URL`
-   - `APP_URL`
    - `PAYPAL_RECEIVER_EMAIL`
    - `SEED_ADMIN_EMAIL`
    - `SEED_ADMIN_PASSWORD`
 4. Deploy
 
 `render.yaml` is configured for a manually supplied PostgreSQL connection string in `DATABASE_URL`, which is useful when you are using an external Postgres database instead of a Render-managed database. The fixed PayPal settings are included in the blueprint, while secrets stay manual.
+
+On Render, you can optionally leave `APP_URL` unset and let the application use Render's default `RENDER_EXTERNAL_URL` for PayPal callback URLs.
 
 ## Core routes
 

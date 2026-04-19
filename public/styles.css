@@ -678,6 +678,21 @@ th,td{
   color:#64748b;
   font-size:.88rem;
 }
+.payment-config-note{
+  margin:12px 0 0;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(15,23,42,.04);
+  border:1px solid rgba(15,23,42,.08);
+  color:#334155;
+  font-size:.85rem;
+  line-height:1.55;
+}
+.payment-config-note code{
+  font-family:Consolas,"Courier New",monospace;
+  font-size:.81rem;
+  word-break:break-all;
+}
 .payment-quote-note{
   margin:12px 0 0;
   color:#0f172a;

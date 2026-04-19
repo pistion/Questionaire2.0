@@ -51,6 +51,7 @@
             </a>
             <p class="payment-quote-note" id="paypalQuoteValue">Stored PayPal quote: Pending</p>
             <p class="payment-link-note" id="paypalRateNote">This opens your secure PayPal payment page in a new tab using the fixed amount configured in PayPal.</p>
+            <div class="payment-config-note" id="paypalConfigNote"></div>
           </article>
 
           <article class="payment-option payment-option-banking">
@@ -258,6 +259,7 @@
     const paypalBtn = document.getElementById("paypalBtn");
     const paypalQuoteValue = document.getElementById("paypalQuoteValue");
     const paypalRateNote = document.getElementById("paypalRateNote");
+    const paypalConfigNote = document.getElementById("paypalConfigNote");
     const mobileBankingToggleBtn = document.getElementById("mobileBankingToggleBtn");
     const mobileBankingPanel = document.getElementById("mobileBankingPanel");
     const mobileBankingReceipt = document.getElementById("mobileBankingReceipt");
@@ -319,6 +321,9 @@
         paypalBtn.href = data.paypalHostedLinkUrl;
       }
       paypalRateNote.textContent = "This opens your secure PayPal payment page in a new tab using the fixed amount configured in PayPal.";
+      paypalConfigNote.innerHTML = data.paypalReturnUrl && data.paypalIpnUrl
+        ? `Global callback URLs:<br>Return: <code>${data.paypalReturnUrl}</code><br>IPN: <code>${data.paypalIpnUrl}</code>`
+        : "Global callback URLs will appear here when the app is running on a public host.";
 
       if (data.submissionId) {
         savePendingSubmission({
