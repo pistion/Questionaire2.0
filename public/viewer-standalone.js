@@ -1,3 +1,20 @@
+const DEFAULT_API_BASE_URL = "https://questionaire2-0.onrender.com";
+const API_BASE_URL_KEY = "questionnaire_viewer_api_base_url";
+const TOKEN_KEY = "questionnaire_admin_token";
+const AUTO_REFRESH_MS = 30_000;
+const LOCAL_VIEWER_CONFIG = window.__VIEWER_CONFIG__ || {};
+const SNAPSHOT_PAYLOAD = window.__DB_VIEWER_DATA__ || null;
+const IS_FILE_VIEWER = window.location.protocol === "file:";
+
+const loginView = document.getElementById("loginView");
+const appView = document.getElementById("appView");
+const loginStatus = document.getElementById("loginStatus");
+const viewerStatus = document.getElementById("viewerStatus");
+const refreshBtn = document.getElementById("refreshBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const openAdminBtn = document.getElementById("openAdminBtn");
+const sourceUrlBadge = document.getElementById("sourceUrlBadge");
+const lastSyncBadge = document.getElementById("lastSyncBadge");
 const summaryGrid = document.getElementById("summaryGrid");
 const submissionList = document.getElementById("submissionList");
 const submissionDetail = document.getElementById("submissionDetail");
@@ -10,8 +27,6 @@ const tableTabs = document.getElementById("tableTabs");
 const tableMeta = document.getElementById("tableMeta");
 const tableOutput = document.getElementById("tableOutput");
 const tableSearch = document.getElementById("tableSearch");
-const reloadBtn = document.getElementById("reloadBtn");
-const openDataBtn = document.getElementById("openDataBtn");
 
 const TABLE_LABELS = {
   admins: "Admins",
@@ -35,7 +50,10 @@ const TABLE_COLUMN_ORDER = {
   payment_receipts: [
     "id", "submission_id", "business_name", "customer_name", "customer_email", "customer_phone",
     "customer_address", "domain_pgk", "hosting_pgk", "subtotal_pgk", "tax_rate",
-    "tax_pgk", "total_pgk", "payment_currency", "paypal_quote_amount", "created_at", "updated_at"
+    "tax_pgk", "total_pgk", "payment_currency", "paypal_quote_amount",
+    "manual_banking_method", "manual_banking_receipt_url", "manual_banking_receipt_filename",
+    "manual_banking_receipt_mime", "manual_banking_status", "manual_banking_submitted_at",
+    "created_at", "updated_at"
   ],
   paypal_payments: [
     "id", "submission_id", "txn_id", "parent_txn_id", "payment_status", "verification_status",
@@ -45,14 +63,109 @@ const TABLE_COLUMN_ORDER = {
 };
 
 const state = {
+  apiBaseUrl: "",
+  viewerUsername: "",
+  viewerPassword: "",
+  readOnlyRouteMode: "",
+  snapshotMode: false,
   summary: null,
   submissions: [],
   filteredSubmissions: [],
   tables: {},
   selectedSubmissionId: null,
   activeTable: "questionnaires",
-  generatedAt: null
+  lastSyncedAt: "",
+  refreshTimer: null
 };
+
+function normalizeBaseUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  return text.replace(/\/+$/, "");
+}
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function getStoredApiBaseUrl() {
+  return normalizeBaseUrl(
+    localStorage.getItem(API_BASE_URL_KEY) ||
+    LOCAL_VIEWER_CONFIG.apiBaseUrl ||
+    DEFAULT_API_BASE_URL
+  );
+}
+
+function setStoredApiBaseUrl(value) {
+  const normalized = normalizeBaseUrl(value || DEFAULT_API_BASE_URL);
+  localStorage.setItem(API_BASE_URL_KEY, normalized);
+  state.apiBaseUrl = normalized;
+  sourceUrlBadge.textContent = normalized ? `API: ${normalized}` : "API URL missing";
+  openAdminBtn.href = normalized ? `${normalized}/admin` : "#";
+}
+
+function buildApiUrl(path) {
+  const normalizedPath = String(path || "").startsWith("/") ? path : `/${path}`;
+  return `${state.apiBaseUrl}${normalizedPath}`;
+}
+
+function hasReadOnlyViewerCredentials() {
+  return Boolean(state.viewerUsername && state.viewerPassword);
+}
+
+function resolveUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(text)) {
+    return text;
+  }
+
+  if (text.startsWith("//")) {
+    return `https:${text}`;
+  }
+
+  if (!/^(\/|uploads\/|public\/uploads\/)/i.test(text)) {
+    return "";
+  }
+
+  if (state.snapshotMode && IS_FILE_VIEWER) {
+    if (text.startsWith("/uploads/")) {
+      return new URL(`./public${text}`, window.location.href).href;
+    }
+
+    if (text.startsWith("uploads/")) {
+      return new URL(`./public/${text}`, window.location.href).href;
+    }
+
+    if (text.startsWith("public/uploads/")) {
+      return new URL(`./${text}`, window.location.href).href;
+    }
+  }
+
+  if (!state.apiBaseUrl) {
+    return text;
+  }
+
+  if (text.startsWith("/")) {
+    return `${state.apiBaseUrl}${text}`;
+  }
+
+  return `${state.apiBaseUrl}/${text.replace(/^\.?\//, "")}`;
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -96,15 +209,15 @@ function formatDate(value) {
 }
 
 function looksLikeUrl(value) {
-  return typeof value === "string" && /^https?:\/\//i.test(value);
+  return Boolean(resolveUrl(value));
 }
 
 function looksLikeImageUrl(value) {
-  return looksLikeUrl(value) && /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(value);
+  return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(resolveUrl(value));
 }
 
 function looksLikePdfUrl(value) {
-  return looksLikeUrl(value) && /\.pdf(\?.*)?$/i.test(value);
+  return /\.pdf(\?.*)?$/i.test(resolveUrl(value));
 }
 
 function normalizeStatus(value) {
@@ -121,8 +234,9 @@ function renderValue(value) {
     return '<span class="dbv-empty">-</span>';
   }
 
-  if (looksLikeUrl(value)) {
-    return `<a href="${escapeHtml(value)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`;
+  const resolved = resolveUrl(value);
+  if (resolved) {
+    return `<a href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resolved)}</a>`;
   }
 
   return escapeHtml(value);
@@ -146,8 +260,215 @@ function renderField(label, value, options = {}) {
   `;
 }
 
+function updateLastSyncBadge() {
+  lastSyncBadge.textContent = state.lastSyncedAt
+    ? `Last sync: ${formatDateTime(state.lastSyncedAt)}`
+    : "Not synced yet";
+}
+
+function setLoginStatus(message, type = "error") {
+  loginStatus.textContent = message;
+  loginStatus.className = `dbv-status ${type}`;
+}
+
+function setViewerStatus(message, type = "info") {
+  if (!message) {
+    viewerStatus.textContent = "";
+    viewerStatus.className = "dbv-status hidden";
+    return;
+  }
+
+  viewerStatus.textContent = message;
+  viewerStatus.className = `dbv-status ${type}`;
+}
+
+function applyLocalViewerConfig() {
+  state.viewerUsername = String(LOCAL_VIEWER_CONFIG.viewerUsername || "").trim();
+  state.viewerPassword = String(LOCAL_VIEWER_CONFIG.viewerPassword || "");
+
+  if (SNAPSHOT_PAYLOAD) {
+    setLoginStatus("Local PostgreSQL snapshot detected. Opening viewer from viewer-data.js...", "info");
+    return;
+  }
+
+  if (hasReadOnlyViewerCredentials()) {
+    setLoginStatus("Local viewer credentials detected. Connecting automatically...", "info");
+  } else {
+    setLoginStatus("Viewer credentials are missing. Add them to viewer.local.js and reload this page.", "error");
+  }
+}
+
+function normalizeLegacyProducts(products) {
+  if (!products) {
+    return [];
+  }
+
+  if (Array.isArray(products)) {
+    return products.map((product) => ({
+      ...product,
+      images: Array.isArray(product.images)
+        ? product.images.filter(Boolean)
+        : []
+    }));
+  }
+
+  try {
+    const parsed = JSON.parse(products);
+    return normalizeLegacyProducts(parsed);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function buildLegacyMedia(submission, products) {
+  const media = [];
+  const addMedia = (kind, label, sourceTable, url) => {
+    if (!url) {
+      return;
+    }
+
+    media.push({ kind, label, sourceTable, url });
+  };
+
+  addMedia("portrait", "Portrait Photo", "questionnaires", submission.portrait_url);
+  addMedia("logo", "Business Logo", "questionnaires", submission.logo_url);
+  addMedia("policy_pdf", "Store Policies PDF", "questionnaires", submission.store_policies_pdf_url);
+
+  products.forEach((product, productIndex) => {
+    (product.images || []).forEach((imageUrl, imageIndex) => {
+      addMedia(
+        "product_image",
+        `${product.name || `Product ${productIndex + 1}`} Image ${imageIndex + 1}`,
+        "product_images",
+        imageUrl
+      );
+    });
+  });
+
+  return media;
+}
+
+function buildSummaryFromTables(tables, submissions) {
+  const paidSubmissions = submissions.filter((item) => item.payment_status === "paid").length;
+  const pendingPayments = submissions.filter((item) => item.payment_status && item.payment_status !== "paid").length;
+  const pendingReview = submissions.filter((item) => ["new", "in_review"].includes(item.status)).length;
+  const mediaAssets = submissions.reduce((total, item) => total + item.media.length, 0);
+
+  return {
+    totalSubmissions: submissions.length,
+    totalProducts: tables.products.length,
+    totalMediaAssets: mediaAssets,
+    paidSubmissions,
+    pendingPayments,
+    pendingReview,
+    lastSubmissionAt: submissions[0]?.created_at || null,
+    tableCounts: Object.fromEntries(
+      Object.entries(tables).map(([key, rows]) => [key, rows.length])
+    )
+  };
+}
+
+function loadViewerPayload(payload, mode = "") {
+  state.snapshotMode = mode === "snapshot";
+  state.readOnlyRouteMode = mode;
+  state.summary = payload.summary || null;
+  state.submissions = payload.submissions || [];
+  state.tables = payload.tables || {};
+  state.selectedSubmissionId = state.selectedSubmissionId || state.submissions[0]?.id || null;
+  state.lastSyncedAt = payload.generatedAt || new Date().toISOString();
+  updateLastSyncBadge();
+  renderAll();
+}
+
+function bootSnapshotViewer() {
+  showApp();
+  stopAutoRefresh();
+  openAdminBtn.href = "#";
+  sourceUrlBadge.textContent = "Source: PostgreSQL snapshot";
+  loadViewerPayload(SNAPSHOT_PAYLOAD, "snapshot");
+  setViewerStatus("Snapshot loaded from viewer-data.js. Run open-viewer.bat or npm run viewer:open to refresh from PostgreSQL.", "info");
+}
+
+function adaptLegacyViewerPayload(payload) {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.rows)
+        ? payload.rows
+        : [];
+
+  const submissions = rows.map((row) => {
+    const products = normalizeLegacyProducts(row.products);
+    return {
+      ...row,
+      products,
+      payments: [],
+      receipt: null,
+      media: buildLegacyMedia(row, products)
+    };
+  });
+
+  const productRows = [];
+  const productImageRows = [];
+
+  submissions.forEach((submission) => {
+    submission.products.forEach((product) => {
+      productRows.push({
+        ...product,
+        questionnaire_id: product.questionnaire_id || submission.id
+      });
+
+      (product.images || []).forEach((imageUrl, index) => {
+        productImageRows.push({
+          id: `${product.id || submission.id}-${index + 1}`,
+          product_id: product.id || null,
+          image_url: imageUrl,
+          sort_order: index
+        });
+      });
+    });
+  });
+
+  const tables = {
+    admins: [],
+    questionnaires: rows,
+    products: productRows,
+    product_images: productImageRows,
+    payment_receipts: [],
+    paypal_payments: []
+  };
+
+  return {
+    summary: buildSummaryFromTables(tables, submissions),
+    tables,
+    submissions
+  };
+}
+
+async function fetchLegacyViewerData() {
+  const data = await api("/api/public/view-submissions", { useViewerCredentials: true });
+  state.readOnlyRouteMode = "legacy_headers";
+  return adaptLegacyViewerPayload(data);
+}
+
+async function fetchReadOnlyViewerData() {
+  try {
+    const data = await api("/api/public/database-viewer-live", { useViewerCredentials: true });
+    state.readOnlyRouteMode = "full";
+    return data;
+  } catch (error) {
+    if (!/404|not found/i.test(error.message)) {
+      throw error;
+    }
+
+    return fetchLegacyViewerData();
+  }
+}
+
 function renderSummary() {
-  if (!state.summary) {
+  const summary = state.summary;
+  if (!summary) {
     summaryGrid.innerHTML = "";
     return;
   }
@@ -155,33 +476,33 @@ function renderSummary() {
   const cards = [
     {
       label: "Submissions",
-      value: state.summary.totalSubmissions,
-      subtext: `${state.summary.pendingReview} currently need review`
+      value: summary.totalSubmissions,
+      subtext: `${summary.pendingReview} currently need review`
     },
     {
       label: "Products",
-      value: state.summary.totalProducts,
-      subtext: `${state.summary.tableCounts.product_images || 0} product image rows`
+      value: summary.totalProducts,
+      subtext: `${summary.tableCounts.product_images || 0} product image rows`
     },
     {
       label: "Media Assets",
-      value: state.summary.totalMediaAssets,
+      value: summary.totalMediaAssets,
       subtext: "Portraits, logos, product images, and PDFs"
     },
     {
       label: "Paid",
-      value: state.summary.paidSubmissions,
-      subtext: `${state.summary.tableCounts.paypal_payments || 0} PayPal records stored`
+      value: summary.paidSubmissions,
+      subtext: `${summary.tableCounts.paypal_payments || 0} PayPal records stored`
     },
     {
       label: "Pending Payments",
-      value: state.summary.pendingPayments,
-      subtext: `${state.summary.tableCounts.payment_receipts || 0} receipts tracked`
+      value: summary.pendingPayments,
+      subtext: `${summary.tableCounts.payment_receipts || 0} receipts tracked`
     },
     {
-      label: "Exported",
-      value: state.generatedAt ? formatDate(state.generatedAt) : "-",
-      subtext: state.generatedAt ? formatDateTime(state.generatedAt) : "No snapshot generated yet"
+      label: "Last Sync",
+      value: state.lastSyncedAt ? formatDate(state.lastSyncedAt) : "-",
+      subtext: state.lastSyncedAt ? formatDateTime(state.lastSyncedAt) : "Waiting for live data"
     }
   ];
 
@@ -225,7 +546,7 @@ function renderSubmissionList() {
       <div class="dbv-empty-state" style="min-height: 280px;">
         <div>
           <h2>No matching submissions</h2>
-          <p>Try clearing the filters or generating a fresh viewer-data.js export.</p>
+          <p>Try clearing the filters or wait for the next live refresh.</p>
         </div>
       </div>
     `;
@@ -281,18 +602,21 @@ function renderMediaSection(submission) {
     <section class="dbv-section">
       <h3 class="dbv-section-title">Media & Documents</h3>
       <div class="dbv-media-grid">
-        ${submission.media.map((item) => `
-          <article class="dbv-media-card">
-            ${looksLikePdfUrl(item.url)
-              ? `<div class="dbv-media-thumb" style="display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-size:1.15rem;color:#145442;">PDF</div>`
-              : `<img class="dbv-media-thumb" src="${escapeHtml(item.url)}" alt="${escapeHtml(item.label)}">`}
-            <div class="dbv-media-body">
-              <div class="dbv-media-title">${escapeHtml(item.label)}</div>
-              <div class="dbv-media-source">${escapeHtml(formatLabel(item.sourceTable))}</div>
-              <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Open file</a>
-            </div>
-          </article>
-        `).join("")}
+        ${submission.media.map((item) => {
+          const url = resolveUrl(item.url);
+          return `
+            <article class="dbv-media-card">
+              ${looksLikePdfUrl(item.url)
+                ? `<div class="dbv-media-thumb" style="display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-size:1.15rem;color:#145442;">PDF</div>`
+                : `<img class="dbv-media-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(item.label)}">`}
+              <div class="dbv-media-body">
+                <div class="dbv-media-title">${escapeHtml(item.label)}</div>
+                <div class="dbv-media-source">${escapeHtml(formatLabel(item.sourceTable))}</div>
+                <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open file</a>
+              </div>
+            </article>
+          `;
+        }).join("")}
       </div>
     </section>
   `;
@@ -338,16 +662,19 @@ function renderProductsSection(submission) {
             ${(product.images || []).length
               ? `
                 <div class="dbv-media-grid" style="margin-top: 14px;">
-                  ${product.images.map((url) => `
-                    <article class="dbv-media-card">
-                      <img class="dbv-media-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(product.name || "Product image")}">
-                      <div class="dbv-media-body">
-                        <div class="dbv-media-title">Stored Product Image</div>
-                        <div class="dbv-media-source">product_images table</div>
-                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open file</a>
-                      </div>
-                    </article>
-                  `).join("")}
+                  ${product.images.map((url) => {
+                    const resolvedUrl = resolveUrl(url);
+                    return `
+                      <article class="dbv-media-card">
+                        <img class="dbv-media-thumb" src="${escapeHtml(resolvedUrl)}" alt="${escapeHtml(product.name || "Product image")}">
+                        <div class="dbv-media-body">
+                          <div class="dbv-media-title">Stored Product Image</div>
+                          <div class="dbv-media-source">product_images table</div>
+                          <a href="${escapeHtml(resolvedUrl)}" target="_blank" rel="noopener noreferrer">Open file</a>
+                        </div>
+                      </article>
+                    `;
+                  }).join("")}
                 </div>
               `
               : `<div class="dbv-empty" style="margin-top: 12px;">No product images stored for this row.</div>`
@@ -395,6 +722,12 @@ function renderReceiptSection(submission) {
                 ${renderField("Total (PGK)", receipt.total_pgk)}
                 ${renderField("Payment Currency", receipt.payment_currency)}
                 ${renderField("Stored PayPal Quote", receipt.paypal_quote_amount)}
+                ${renderField("Manual Banking Method", receipt.manual_banking_method)}
+                ${renderField("Manual Banking Receipt", receipt.manual_banking_receipt_url)}
+                ${renderField("Manual Banking File Name", receipt.manual_banking_receipt_filename)}
+                ${renderField("Manual Banking File Type", receipt.manual_banking_receipt_mime)}
+                ${renderField("Manual Banking Status", receipt.manual_banking_status)}
+                ${renderField("Manual Banking Submitted At", receipt.manual_banking_submitted_at, { isDate: true })}
               </div>
             `
             : `<div class="dbv-empty">No payment_receipts row linked to this submission.</div>`
@@ -577,17 +910,19 @@ function renderTableCell(key, value) {
     return '<span class="dbv-empty">-</span>';
   }
 
+  const resolved = resolveUrl(value);
+
   if (looksLikeImageUrl(value)) {
     return `
-      <a class="dbv-thumb-link" href="${escapeHtml(value)}" target="_blank" rel="noopener noreferrer">
-        <img class="dbv-thumb-inline" src="${escapeHtml(value)}" alt="${escapeHtml(key)}">
-        <span>${escapeHtml(value)}</span>
+      <a class="dbv-thumb-link" href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">
+        <img class="dbv-thumb-inline" src="${escapeHtml(resolved)}" alt="${escapeHtml(key)}">
+        <span>${escapeHtml(resolved)}</span>
       </a>
     `;
   }
 
-  if (looksLikeUrl(value)) {
-    return `<a href="${escapeHtml(value)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>`;
+  if (resolved) {
+    return `<a href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resolved)}</a>`;
   }
 
   if (typeof value === "object") {
@@ -672,48 +1007,166 @@ function renderAll() {
   renderActiveTable();
 }
 
-function showMissingDataState() {
-  summaryGrid.innerHTML = `
-    <article class="dbv-summary-card" style="grid-column: 1 / -1;">
-      <div class="dbv-summary-label">Snapshot Missing</div>
-      <div class="dbv-summary-value">Run Export</div>
-      <div class="dbv-summary-subtext">Generate viewer-data.js with npm run viewer:export, then refresh this page.</div>
-    </article>
-  `;
-  tableTabs.innerHTML = "";
-  tableMeta.textContent = "";
-  tableOutput.innerHTML = `
-    <div class="dbv-empty-state" style="min-height: 220px;">
-      <div>
-        <h2>No exported database data found</h2>
-        <p>This standalone viewer needs the generated viewer-data.js file in the project root.</p>
-      </div>
-    </div>
-  `;
+function showLogin() {
+  loginView.classList.remove("hidden");
+  appView.classList.add("hidden");
+  setViewerStatus("");
 }
 
-function boot() {
-  const payload = window.__DB_VIEWER_DATA__;
-  if (!payload) {
-    showMissingDataState();
+function showApp() {
+  loginView.classList.add("hidden");
+  appView.classList.remove("hidden");
+}
+
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const token = getToken();
+
+  if (options.useViewerCredentials && hasReadOnlyViewerCredentials()) {
+    headers["x-viewer-username"] = state.viewerUsername;
+    headers["x-viewer-password"] = state.viewerPassword;
+  } else if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  let response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      ...options,
+      headers
+    });
+  } catch (_error) {
+    throw new Error(`Unable to reach ${state.apiBaseUrl}. Make sure the Render app is live.`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : { error: await response.text() };
+
+  if (!response.ok) {
+    throw new Error(data.error || data.details || `Request failed (${response.status})`);
+  }
+
+  return data;
+}
+
+function stopAutoRefresh() {
+  if (state.refreshTimer) {
+    window.clearInterval(state.refreshTimer);
+    state.refreshTimer = null;
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  state.refreshTimer = window.setInterval(() => {
+    if (document.hidden || (!getToken() && !hasReadOnlyViewerCredentials())) {
+      return;
+    }
+
+    loadDatabaseViewer({ silent: true }).catch(() => {});
+  }, AUTO_REFRESH_MS);
+}
+
+async function loadDatabaseViewer({ silent = false } = {}) {
+  if (!silent) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Refreshing...";
+  }
+
+  try {
+    const data = hasReadOnlyViewerCredentials()
+      ? await fetchReadOnlyViewerData()
+      : await api("/api/admin/database-viewer");
+    loadViewerPayload({
+      ...data,
+      generatedAt: new Date().toISOString()
+    }, state.readOnlyRouteMode || "remote");
+    const modeMessage = state.readOnlyRouteMode === "legacy_headers"
+      ? "Live database sync active through the legacy viewer route. This page refreshes automatically every 30 seconds."
+      : "Live database sync active. This page refreshes automatically every 30 seconds.";
+    setViewerStatus(modeMessage, "info");
+  } catch (error) {
+    updateLastSyncBadge();
+    setViewerStatus(`Sync failed: ${error.message}`, "error");
+    throw error;
+  } finally {
+    if (!silent) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh Now";
+    }
+  }
+}
+
+async function checkAuth() {
+  if (SNAPSHOT_PAYLOAD) {
+    bootSnapshotViewer();
     return;
   }
 
-  state.summary = payload.summary || null;
-  state.tables = payload.tables || {};
-  state.submissions = payload.submissions || [];
-  state.filteredSubmissions = state.submissions.slice();
-  state.selectedSubmissionId = state.submissions[0]?.id || null;
-  state.generatedAt = payload.generatedAt || null;
-  renderAll();
+  if (hasReadOnlyViewerCredentials()) {
+    try {
+      showApp();
+      startAutoRefresh();
+      await loadDatabaseViewer();
+    } catch (error) {
+      stopAutoRefresh();
+      showLogin();
+      setLoginStatus(error.message, "error");
+    }
+    return;
+  }
+
+  const token = getToken();
+  if (!token) {
+    showLogin();
+    setLoginStatus("Automatic viewer credentials are not available for this page.", "error");
+    return;
+  }
+
+  try {
+    await api("/api/auth/me");
+    showApp();
+    startAutoRefresh();
+    await loadDatabaseViewer();
+  } catch (_error) {
+    clearToken();
+    showLogin();
+  }
 }
 
-reloadBtn.addEventListener("click", () => {
-  window.location.reload();
+refreshBtn.addEventListener("click", async () => {
+  if (state.snapshotMode) {
+    window.location.reload();
+    return;
+  }
+
+  try {
+    await loadDatabaseViewer();
+  } catch (_error) {
+    // Status banner already updated in loadDatabaseViewer.
+  }
 });
 
-openDataBtn.addEventListener("click", () => {
-  window.open("viewer-data.js", "_blank");
+logoutBtn.addEventListener("click", () => {
+  stopAutoRefresh();
+  clearToken();
+  location.reload();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (state.snapshotMode) {
+    return;
+  }
+
+  if (!document.hidden && (getToken() || hasReadOnlyViewerCredentials())) {
+    loadDatabaseViewer({ silent: true }).catch(() => {});
+  }
 });
 
 submissionSearch.addEventListener("input", renderSubmissionList);
@@ -721,4 +1174,7 @@ statusFilter.addEventListener("change", renderSubmissionList);
 paymentFilter.addEventListener("change", renderSubmissionList);
 tableSearch.addEventListener("input", renderActiveTable);
 
-boot();
+applyLocalViewerConfig();
+setStoredApiBaseUrl(getStoredApiBaseUrl());
+updateLastSyncBadge();
+checkAuth();

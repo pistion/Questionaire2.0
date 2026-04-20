@@ -168,12 +168,36 @@ CREATE TABLE IF NOT EXISTS payment_receipts (
   total_pgk NUMERIC(12,2) NOT NULL DEFAULT 220.00,
   payment_currency TEXT NOT NULL DEFAULT 'USD',
   paypal_quote_amount NUMERIC(12,2),
+  manual_banking_method TEXT,
+  manual_banking_receipt_url TEXT,
+  manual_banking_receipt_filename TEXT,
+  manual_banking_receipt_mime TEXT,
+  manual_banking_status TEXT NOT NULL DEFAULT 'not_submitted',
+  manual_banking_submitted_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE payment_receipts
 ADD COLUMN IF NOT EXISTS paypal_quote_amount NUMERIC(12,2);
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_method TEXT;
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_receipt_url TEXT;
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_receipt_filename TEXT;
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_receipt_mime TEXT;
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_status TEXT NOT NULL DEFAULT 'not_submitted';
+
+ALTER TABLE payment_receipts
+ADD COLUMN IF NOT EXISTS manual_banking_submitted_at TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS idx_questionnaires_status ON questionnaires(status);
 CREATE INDEX IF NOT EXISTS idx_questionnaires_payment_status ON questionnaires(payment_status);
@@ -183,3 +207,4 @@ CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(produ
 CREATE INDEX IF NOT EXISTS idx_paypal_payments_submission_id ON paypal_payments(submission_id);
 CREATE INDEX IF NOT EXISTS idx_paypal_payments_status ON paypal_payments(payment_status);
 CREATE INDEX IF NOT EXISTS idx_payment_receipts_submission_id ON payment_receipts(submission_id);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_manual_banking_status ON payment_receipts(manual_banking_status);

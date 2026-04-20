@@ -79,9 +79,14 @@
                 </div>
                 <div class="field full">
                   <label for="mobileBankingReceipt">Upload Banking Receipt</label>
-                  <input id="mobileBankingReceipt" type="file" accept="image/*,.pdf,application/pdf" />
-                  <p class="hint">Attach the screenshot or PDF receipt from your completed bank payment.</p>
+                  <input id="mobileBankingReceipt" type="file" accept=".pdf,.jpg,.jpeg,.html,application/pdf,image/jpeg,text/html" />
+                  <p class="hint">Attach the completed receipt as a PDF, JPG, or HTML file only.</p>
                   <div id="mobileBankingReceiptFiles" class="file-list"></div>
+                </div>
+                <div class="manual-banking-existing hidden" id="manualBankingExistingReceipt"></div>
+                <div class="manual-banking-actions">
+                  <button type="button" class="manual-banking-submit-btn" id="manualBankingSubmitBtn">Submit Manual Banking Receipt</button>
+                  <p class="manual-banking-submit-status" id="manualBankingSubmitStatus">Select your banking method and attach your receipt to submit it for review.</p>
                 </div>
               </div>
             </div>
@@ -270,8 +275,14 @@
     const paymentSuccessMessage = document.getElementById("paymentSuccessMessage");
     const paymentSuccessDetails = document.getElementById("paymentSuccessDetails");
     const paymentSuccessCloseBtn = document.getElementById("paymentSuccessCloseBtn");
+    const mobileBankingProvider = document.getElementById("mobileBankingProvider");
+    const manualBankingSubmitBtn = document.getElementById("manualBankingSubmitBtn");
+    const manualBankingSubmitStatus = document.getElementById("manualBankingSubmitStatus");
+    const manualBankingExistingReceipt = document.getElementById("manualBankingExistingReceipt");
 
     let currentCheckoutData = null;
+    const manualBankingAllowedTypes = new Set(["application/pdf", "image/jpeg", "text/html"]);
+    const manualBankingAllowedExtensions = new Set([".pdf", ".jpg", ".jpeg", ".html"]);
 
     function formatKina(amount) {
       const rounded = Math.round((Number(amount) || 0) * 100) / 100;
@@ -291,6 +302,70 @@
     function formatUsd(amount) {
       const rounded = Math.round((Number(amount) || 0) * 100) / 100;
       return `$${rounded.toFixed(2)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getFileExtension(name) {
+      const value = String(name || "");
+      const index = value.lastIndexOf(".");
+      return index >= 0 ? value.slice(index).toLowerCase() : "";
+    }
+
+    function isAllowedManualBankingFile(file) {
+      if (!file) {
+        return false;
+      }
+
+      const extension = getFileExtension(file.name);
+      const type = String(file.type || "").toLowerCase();
+      return manualBankingAllowedExtensions.has(extension) && (!type || manualBankingAllowedTypes.has(type));
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Failed to read the selected receipt file."));
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderManualBankingState(manualBanking) {
+      const status = manualBanking?.status || "not_submitted";
+      const hasReceipt = Boolean(manualBanking?.receiptUrl);
+
+      if (!hasReceipt || status !== "submitted") {
+        manualBankingExistingReceipt.classList.add("hidden");
+        manualBankingExistingReceipt.innerHTML = "";
+        manualBankingSubmitBtn.textContent = "Submit Manual Banking Receipt";
+        manualBankingSubmitStatus.textContent = "Select your banking method and attach your receipt to submit it for review.";
+        return;
+      }
+
+      const submittedAt = manualBanking.submittedAt
+        ? formatDate(manualBanking.submittedAt)
+        : "Recently";
+      const method = manualBanking.method || "Manual Banking";
+      const fileName = manualBanking.receiptFilename || "Open submitted receipt";
+      const receiptUrl = manualBanking.receiptUrl || "#";
+
+      manualBankingExistingReceipt.classList.remove("hidden");
+      manualBankingExistingReceipt.innerHTML = `
+        <strong>Manual banking receipt already submitted</strong>
+        <span>Method: ${escapeHtml(method)}</span>
+        <span>Submitted: ${escapeHtml(submittedAt)}</span>
+        <a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(fileName)}</a>
+      `;
+      manualBankingSubmitBtn.textContent = "Update Manual Banking Receipt";
+      manualBankingSubmitStatus.textContent = "A receipt is already on file. You can submit a replacement if needed.";
     }
 
     function applyCheckoutData(data) {
@@ -324,6 +399,7 @@
       paypalConfigNote.innerHTML = data.paypalReturnUrl && data.paypalIpnUrl
         ? `Global callback URLs:<br>Return: <code>${data.paypalReturnUrl}</code><br>IPN: <code>${data.paypalIpnUrl}</code>`
         : "Global callback URLs will appear here when the app is running on a public host.";
+      renderManualBankingState(data.manualBanking);
 
       if (data.submissionId) {
         savePendingSubmission({
@@ -467,12 +543,90 @@
       }
     }
 
+    async function submitManualBankingReceipt() {
+      if (!currentCheckoutData?.submissionId) {
+        manualBankingSubmitStatus.textContent = "The checkout page is missing a valid submission reference.";
+        return;
+      }
+
+      const bankingMethod = mobileBankingProvider.value.trim();
+      const selectedFile = mobileBankingReceipt.files?.[0];
+
+      if (!bankingMethod) {
+        manualBankingSubmitStatus.textContent = "Choose a banking method before submitting the receipt.";
+        return;
+      }
+
+      if (!selectedFile) {
+        manualBankingSubmitStatus.textContent = "Attach the bank receipt file before submitting.";
+        return;
+      }
+
+      if (!isAllowedManualBankingFile(selectedFile)) {
+        manualBankingSubmitStatus.textContent = "Only PDF, JPG, or HTML receipt files are accepted.";
+        return;
+      }
+
+      manualBankingSubmitBtn.disabled = true;
+      manualBankingSubmitBtn.textContent = "Submitting...";
+      manualBankingSubmitStatus.textContent = "Uploading your manual banking receipt for verification.";
+      checkoutStatusMessage.textContent = "Submitting your manual banking receipt for payment verification.";
+
+      try {
+        const receiptFileBase64 = await fileToDataUrl(selectedFile);
+        const response = await fetch("/api/public/manual-banking-submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submissionId: currentCheckoutData.submissionId,
+            bankingMethod,
+            receiptFileBase64,
+            receiptFileName: selectedFile.name
+          })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to submit manual banking receipt");
+        }
+
+        applyCheckoutData(data.item);
+        checkoutStatusMessage.textContent = "Your manual banking receipt has been submitted and is pending verification.";
+        manualBankingSubmitStatus.textContent = "Receipt submitted successfully. We will review and confirm the payment.";
+
+        showPaymentSuccessModal({
+          title: "Manual Banking Receipt Submitted",
+          message: "Your manual banking payment proof has been submitted for review.",
+          details: `Reference: #${data.item.submissionId}\nMethod: ${bankingMethod}\nFile: ${selectedFile.name}`
+        });
+      } catch (error) {
+        manualBankingSubmitStatus.textContent = error.message;
+        checkoutStatusMessage.textContent = "The manual banking receipt could not be submitted.";
+      } finally {
+        manualBankingSubmitBtn.disabled = false;
+        manualBankingSubmitBtn.textContent = currentCheckoutData?.manualBanking?.status === "submitted"
+          ? "Update Manual Banking Receipt"
+          : "Submit Manual Banking Receipt";
+      }
+    }
+
     mobileBankingToggleBtn.addEventListener("click", () => {
       const shouldOpen = !mobileBankingPanel.classList.contains("is-open");
       setManualBankingPanelState(shouldOpen);
     });
 
-    mobileBankingReceipt.addEventListener("change", renderReceiptFiles);
+    mobileBankingReceipt.addEventListener("change", () => {
+      renderReceiptFiles();
+      const selectedFile = mobileBankingReceipt.files?.[0];
+      if (!selectedFile) {
+        return;
+      }
+
+      manualBankingSubmitStatus.textContent = isAllowedManualBankingFile(selectedFile)
+        ? `Ready to submit: ${selectedFile.name}`
+        : "Only PDF, JPG, or HTML receipt files are accepted.";
+    });
+    manualBankingSubmitBtn.addEventListener("click", submitManualBankingReceipt);
     paymentSuccessCloseBtn.addEventListener("click", hidePaymentSuccessModal);
     paymentSuccessModalOverlay.addEventListener("click", (event) => {
       if (event.target === paymentSuccessModalOverlay) {

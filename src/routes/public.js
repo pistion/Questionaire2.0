@@ -4,6 +4,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const pool = require("../db");
 const { getPublicAppUrl } = require("../lib/appUrl");
+const { loadDatabaseViewerPayload } = require("../lib/databaseViewer");
 const {
   getExpectedAmount,
   getExpectedCurrency,
@@ -29,11 +30,56 @@ const MIME_EXTENSION_MAP = Object.freeze({
   "image/webp": "webp",
   "image/gif": "gif",
   "image/svg+xml": "svg",
-  "application/pdf": "pdf"
+  "application/pdf": "pdf",
+  "text/html": "html"
 });
+
+const MANUAL_BANKING_METHODS = new Set([
+  "Mobile Banking",
+  "Internet Banking",
+  "Cash Deposit"
+]);
+
+const MANUAL_BANKING_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "text/html"
+]);
 
 function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function getViewerUsername() {
+  return String(process.env.VIEWER_USERNAME || "").trim();
+}
+
+function getViewerPassword() {
+  return String(process.env.VIEWER_PASSWORD || "");
+}
+
+function hasViewerCredentialsConfigured() {
+  return Boolean(getViewerUsername() && getViewerPassword());
+}
+
+function hasValidViewerCredentials(req) {
+  const expectedUsername = getViewerUsername();
+  const expectedPassword = getViewerPassword();
+
+  if (!expectedUsername || !expectedPassword) {
+    return false;
+  }
+
+  const providedUsername = String(
+    req.get("x-viewer-username") || ""
+  ).trim();
+
+  const providedPassword = String(
+    req.get("x-viewer-password") || ""
+  );
+
+  return providedUsername === expectedUsername && providedPassword === expectedPassword;
 }
 
 function sanitizeFolder(folder) {
@@ -62,6 +108,25 @@ function parseBase64Upload(fileBase64) {
     extension,
     buffer: Buffer.from(match[2], "base64")
   };
+}
+
+function validateManualBankingMethod(value) {
+  const method = String(value || "").trim();
+  if (!MANUAL_BANKING_METHODS.has(method)) {
+    throw new Error("Invalid manual banking method");
+  }
+
+  return method;
+}
+
+function validateManualBankingUpload(fileBase64) {
+  const parsed = parseBase64Upload(fileBase64);
+
+  if (!MANUAL_BANKING_ALLOWED_MIME_TYPES.has(parsed.mimeType)) {
+    throw new Error("Manual banking receipt must be a PDF, JPG, or HTML file");
+  }
+
+  return parsed;
 }
 
 async function saveUploadLocally(fileBase64, folder) {
@@ -270,6 +335,14 @@ function formatReceiptResponse(questionnaire, receipt, publicAppUrl = "") {
       totalPgk: Number(receipt.total_pgk),
       paymentCurrency: receipt.payment_currency,
       paypalQuoteAmount: receipt.paypal_quote_amount === null ? null : Number(receipt.paypal_quote_amount)
+    },
+    manualBanking: {
+      method: receipt.manual_banking_method || "",
+      receiptUrl: receipt.manual_banking_receipt_url || "",
+      receiptFilename: receipt.manual_banking_receipt_filename || "",
+      receiptMime: receipt.manual_banking_receipt_mime || "",
+      status: receipt.manual_banking_status || "not_submitted",
+      submittedAt: receipt.manual_banking_submitted_at || null
     }
   };
 }
@@ -584,6 +657,128 @@ router.post("/uploads", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+router.post("/manual-banking-submissions", async (req, res) => {
+  let client;
+
+  try {
+    const submissionId = parseSubmissionId(req.body?.submissionId);
+    const receiptFileBase64 = req.body?.receiptFileBase64;
+    const receiptFileName = String(req.body?.receiptFileName || "").trim();
+
+    if (!submissionId) {
+      return res.status(400).json({ error: "submissionId is required" });
+    }
+
+    if (!receiptFileBase64) {
+      return res.status(400).json({ error: "receiptFileBase64 is required" });
+    }
+
+    const bankingMethod = validateManualBankingMethod(req.body?.bankingMethod);
+    const receiptFile = validateManualBankingUpload(receiptFileBase64);
+
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const questionnaire = await getQuestionnaireById(client, submissionId);
+    if (!questionnaire) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Submission not found" });
+    }
+
+    const receipt = await ensurePaymentReceipt(client, questionnaire);
+    const uploaded = await saveUploadLocally(receiptFileBase64, `questionnaire-saas/manual-banking/${submissionId}`);
+    const receiptUpdateResult = await client.query(
+      `UPDATE payment_receipts
+       SET
+         manual_banking_method = $1,
+         manual_banking_receipt_url = $2,
+         manual_banking_receipt_filename = $3,
+         manual_banking_receipt_mime = $4,
+         manual_banking_status = 'submitted',
+         manual_banking_submitted_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE submission_id = $5
+       RETURNING *`,
+      [
+        bankingMethod,
+        uploaded.url,
+        receiptFileName || uploaded.url.split("/").pop() || `manual-banking.${receiptFile.extension}`,
+        receiptFile.mimeType,
+        submissionId
+      ]
+    );
+
+    const updatedReceipt = receiptUpdateResult.rows[0] || receipt;
+    const questionnaireUpdateResult = await client.query(
+      `UPDATE questionnaires
+       SET
+         payment_status = CASE
+           WHEN payment_status = 'paid' THEN payment_status
+           ELSE 'pending_verification'
+         END,
+         payment_amount = CASE
+           WHEN payment_status = 'paid' THEN payment_amount
+           ELSE $1
+         END,
+         payment_currency = CASE
+           WHEN payment_status = 'paid' THEN payment_currency
+           ELSE 'PGK'
+         END,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [
+        String(updatedReceipt.total_pgk),
+        submissionId
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    const publicAppUrl = getPublicAppUrl(req);
+    res.status(201).json({
+      success: true,
+      item: formatReceiptResponse(questionnaireUpdateResult.rows[0] || questionnaire, updatedReceipt, publicAppUrl)
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK");
+    }
+
+    const status = error.message?.includes("Manual banking receipt must be") || error.message === "Invalid manual banking method"
+      ? 400
+      : error.code === "DB_NOT_CONFIGURED"
+        ? 503
+        : 500;
+
+    console.error("Manual banking submission error:", error);
+    res.status(status).json({ error: error.message || "Failed to save manual banking receipt" });
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+});
+
+router.get("/database-viewer-live", async (req, res) => {
+  if (!hasViewerCredentialsConfigured()) {
+    return res.status(503).json({ error: "Viewer credentials are not configured on the server." });
+  }
+
+  if (!hasValidViewerCredentials(req)) {
+    return res.status(401).json({ error: "Invalid viewer credentials" });
+  }
+
+  try {
+    const payload = await loadDatabaseViewerPayload(pool);
+    res.json({ success: true, ...payload });
+  } catch (error) {
+    res.status(error.code === "DB_NOT_CONFIGURED" ? 503 : 500).json({
+      error: error.message || "Failed to load live database viewer data"
+    });
   }
 });
 
@@ -933,13 +1128,14 @@ router.post("/questionnaires", async (req, res) => {
   }
 });
 
-// Read-only endpoint for viewer.html with simple password protection
+// Temporary read-only endpoint for viewer.html using viewer username/password headers.
 router.get("/view-submissions", async (req, res) => {
-  const pwd = req.query.pwd;
-  const expected = process.env.VIEWER_PASSWORD || "viewer123";
+  if (!hasViewerCredentialsConfigured()) {
+    return res.status(503).json({ error: "Viewer credentials are not configured on the server." });
+  }
 
-  if (pwd !== expected) {
-    return res.status(403).json({ error: "Unauthorized. Incorrect password." });
+  if (!hasValidViewerCredentials(req)) {
+    return res.status(401).json({ error: "Invalid viewer credentials" });
   }
 
   try {

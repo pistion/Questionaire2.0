@@ -734,6 +734,52 @@ th,td{
   display:grid;
   gap:16px;
 }
+.manual-banking-existing{
+  display:grid;
+  gap:6px;
+  padding:14px 16px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px solid #dbe4ef;
+  color:#0f172a;
+}
+.manual-banking-existing strong{
+  font-size:.95rem;
+}
+.manual-banking-existing span,
+.manual-banking-existing a{
+  font-size:.9rem;
+}
+.manual-banking-actions{
+  display:grid;
+  gap:10px;
+}
+.manual-banking-submit-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  padding:14px 18px;
+  border:none;
+  border-radius:16px;
+  background:linear-gradient(135deg, #14532d, #166534);
+  color:#fff;
+  font-size:.98rem;
+  font-weight:800;
+  letter-spacing:.01em;
+  box-shadow:0 12px 24px rgba(22,101,52,.18);
+}
+.manual-banking-submit-btn:disabled{
+  cursor:wait;
+  opacity:.72;
+  box-shadow:none;
+}
+.manual-banking-submit-status{
+  margin:0;
+  color:#475569;
+  font-size:.9rem;
+  line-height:1.5;
+}
 .banking-footer{
   margin-top:22px;
   padding:20px 24px;

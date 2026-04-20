@@ -3,29 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Standalone Database Viewer</title>
+  <title>Database Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="public/database-viewer.css">
 </head>
 <body>
-  <div class="dbv-shell">
+  <div id="loginView" class="dbv-login-shell">
+    <div class="dbv-login-card">
+      <p class="dbv-eyebrow">Live Database Access</p>
+      <h1>Viewer HTML</h1>
+      <p class="dbv-login-copy">
+        This viewer now prefers the local PostgreSQL export snapshot. Run the viewer
+        refresh script, then open this HTML to inspect the latest questionnaire data.
+      </p>
+      <div id="loginStatus" class="dbv-status hidden"></div>
+      <p class="dbv-login-hint">
+        Use `open-viewer.bat` or `npm run viewer:open` to refresh from PostgreSQL first.
+      </p>
+    </div>
+  </div>
+
+  <div id="appView" class="dbv-shell hidden">
     <header class="dbv-hero">
       <div class="dbv-hero-copy">
-        <p class="dbv-eyebrow">Standalone Database Viewer</p>
-        <h1>Static client viewer for your external PostgreSQL data</h1>
+        <p class="dbv-eyebrow">Live PostgreSQL Viewer</p>
+        <h1>Fresh client answers every time this page opens</h1>
         <p>
-          This page does not call your app server. It renders a generated snapshot from
-          <code>viewer-data.js</code>, which is produced locally from your external Render
-          PostgreSQL database by the export script.
+          This viewer can render a direct PostgreSQL export snapshot or, if needed,
+          fall back to the remote app viewer route.
         </p>
+        <div class="dbv-meta-row">
+          <span id="sourceUrlBadge" class="dbv-chip">Waiting for URL</span>
+          <span id="lastSyncBadge" class="dbv-chip">Not synced yet</span>
+          <span class="dbv-chip">Snapshot-aware</span>
+        </div>
       </div>
       <div class="dbv-hero-actions">
-        <button id="reloadBtn" class="dbv-btn dbv-btn-primary">Reload Page</button>
-        <button id="openDataBtn" class="dbv-btn dbv-btn-secondary">Open Data File</button>
+        <button id="refreshBtn" class="dbv-btn dbv-btn-primary">Refresh Now</button>
+        <a id="openAdminBtn" class="dbv-btn dbv-btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Open Remote Admin</a>
+        <button id="logoutBtn" class="dbv-btn dbv-btn-ghost">Reset Viewer</button>
       </div>
     </header>
+
+    <div id="viewerStatus" class="dbv-status info hidden"></div>
 
     <section id="summaryGrid" class="dbv-summary-grid"></section>
 
@@ -64,11 +86,8 @@
       <main class="dbv-main dbv-panel">
         <div id="detailState" class="dbv-empty-state">
           <div>
-            <h2>Waiting for exported data</h2>
-            <p>
-              Run <code>npm run viewer:export</code> to generate <code>viewer-data.js</code>,
-              then refresh this page.
-            </p>
+            <h2>Waiting for live sync</h2>
+            <p>The latest database answers will load here once the snapshot or fallback route is ready.</p>
           </div>
         </div>
         <div id="submissionDetail" class="hidden"></div>
@@ -91,6 +110,7 @@
   </div>
 
   <script src="viewer-data.js"></script>
+  <script src="viewer.local.js"></script>
   <script src="public/viewer-standalone.js"></script>
 </body>
 </html>

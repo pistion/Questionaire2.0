@@ -49,6 +49,7 @@ This project now supports PayPal hosted payment callbacks for Payment Links / Bu
 
 - `POST /api/public/paypal/ipn` for PayPal IPN notifications
 - `POST /api/public/paypal/confirm-return` to link the buyer's PayPal return to a questionnaire submission
+- `POST /api/public/manual-banking-submissions` to submit manual banking proof for review
 - `GET /api/public/checkout/:submissionId` to load the stored receipt snapshot for the exact customer
 
 Set these environment variables:
@@ -75,6 +76,7 @@ Important limitation:
 - The PayPal button is treated as a fixed hosted payment page. The backend stores that fixed PayPal quote amount on each receipt and validates incoming PayPal payment notifications against the saved quote and currency.
 - The site links the PayPal transaction back to the questionnaire when the buyer returns to your site in the same browser session after payment.
 - If the buyer never returns from PayPal, the payment can still be recorded by IPN, but it may need manual review to match it to the correct submission.
+- Manual banking proof is stored on the receipt record and currently accepts `PDF`, `JPG/JPEG`, or `HTML` receipt files only.
 
 ## Default admin
 The DB init script creates an admin user from these env vars:

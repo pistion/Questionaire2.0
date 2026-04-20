@@ -100,6 +100,13 @@ a:hover {
   margin: 0 0 24px;
 }
 
+.dbv-login-hint {
+  color: var(--dbv-muted);
+  font-size: 0.95rem;
+  margin: 14px 0 0;
+  text-align: center;
+}
+
 .dbv-eyebrow {
   margin: 0 0 10px;
   color: var(--dbv-accent-strong);
@@ -231,6 +238,13 @@ a:hover {
   flex-direction: column;
   gap: 12px;
   justify-content: center;
+}
+
+.dbv-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .dbv-summary-grid {

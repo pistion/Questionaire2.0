@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "db:init": "node scripts/init-db.js",
-    "viewer:export": "node scripts/export-viewer-data.js"
+    "viewer:export": "node scripts/export-viewer-data.js",
+    "viewer:open": "powershell -ExecutionPolicy Bypass -File scripts/open-viewer.ps1"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

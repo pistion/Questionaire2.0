@@ -41,7 +41,10 @@ const TABLE_COLUMN_ORDER = {
   payment_receipts: [
     "id", "submission_id", "business_name", "customer_name", "customer_email", "customer_phone",
     "customer_address", "domain_pgk", "hosting_pgk", "subtotal_pgk", "tax_rate",
-    "tax_pgk", "total_pgk", "payment_currency", "paypal_quote_amount", "created_at", "updated_at"
+    "tax_pgk", "total_pgk", "payment_currency", "paypal_quote_amount",
+    "manual_banking_method", "manual_banking_receipt_url", "manual_banking_receipt_filename",
+    "manual_banking_receipt_mime", "manual_banking_status", "manual_banking_submitted_at",
+    "created_at", "updated_at"
   ],
   paypal_payments: [
     "id", "submission_id", "txn_id", "parent_txn_id", "payment_status", "verification_status",
@@ -413,6 +416,12 @@ function renderReceiptSection(submission) {
                 ${renderField("Total (PGK)", receipt.total_pgk)}
                 ${renderField("Payment Currency", receipt.payment_currency)}
                 ${renderField("Stored PayPal Quote", receipt.paypal_quote_amount)}
+                ${renderField("Manual Banking Method", receipt.manual_banking_method)}
+                ${renderField("Manual Banking Receipt", receipt.manual_banking_receipt_url)}
+                ${renderField("Manual Banking File Name", receipt.manual_banking_receipt_filename)}
+                ${renderField("Manual Banking File Type", receipt.manual_banking_receipt_mime)}
+                ${renderField("Manual Banking Status", receipt.manual_banking_status)}
+                ${renderField("Manual Banking Submitted At", receipt.manual_banking_submitted_at, { isDate: true })}
               </div>
             `
             : `<div class="dbv-empty">No payment_receipts row linked to this submission.</div>`
