@@ -529,6 +529,14 @@ a:hover {
   background: linear-gradient(135deg, rgba(31, 122, 99, 0.12), rgba(199, 134, 47, 0.18));
 }
 
+img.dbv-media-thumb {
+  aspect-ratio: auto;
+  height: auto;
+  max-height: 520px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .dbv-media-body {
   padding: 14px;
 }

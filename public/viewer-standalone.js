@@ -1,9 +1,7 @@
 const DEFAULT_API_BASE_URL = "https://questionaire2-0.onrender.com";
 const API_BASE_URL_KEY = "questionnaire_viewer_api_base_url";
 const TOKEN_KEY = "questionnaire_admin_token";
-const AUTO_REFRESH_MS = 30_000;
 const LOCAL_VIEWER_CONFIG = window.__VIEWER_CONFIG__ || {};
-const SNAPSHOT_PAYLOAD = window.__DB_VIEWER_DATA__ || null;
 const IS_FILE_VIEWER = window.location.protocol === "file:";
 
 const loginView = document.getElementById("loginView");
@@ -75,7 +73,7 @@ const state = {
   selectedSubmissionId: null,
   activeTable: "questionnaires",
   lastSyncedAt: "",
-  refreshTimer: null
+  snapshotGeneratedAt: ""
 };
 
 function normalizeBaseUrl(value) {
@@ -115,6 +113,41 @@ function setStoredApiBaseUrl(value) {
   openAdminBtn.href = normalized ? `${normalized}/admin` : "#";
 }
 
+function getSnapshotScriptUrl() {
+  const baseUrl = new URL("viewer-data.js", window.location.href);
+  baseUrl.searchParams.set("v", Date.now().toString());
+  return baseUrl.href;
+}
+
+async function loadSnapshotPayload({ force = false } = {}) {
+  if (!force && window.__DB_VIEWER_DATA__) {
+    return window.__DB_VIEWER_DATA__;
+  }
+
+  window.__DB_VIEWER_DATA__ = null;
+
+  await new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = getSnapshotScriptUrl();
+    script.async = true;
+    script.onload = () => {
+      script.remove();
+      resolve();
+    };
+    script.onerror = () => {
+      script.remove();
+      reject(new Error("Unable to load viewer-data.js. Run open-viewer.bat or npm run viewer:open to generate a fresh snapshot."));
+    };
+    document.head.appendChild(script);
+  });
+
+  if (!window.__DB_VIEWER_DATA__) {
+    throw new Error("viewer-data.js loaded but did not expose any viewer snapshot data.");
+  }
+
+  return window.__DB_VIEWER_DATA__;
+}
+
 function buildApiUrl(path) {
   const normalizedPath = String(path || "").startsWith("/") ? path : `/${path}`;
   return `${state.apiBaseUrl}${normalizedPath}`;
@@ -138,7 +171,7 @@ function resolveUrl(value) {
     return `https:${text}`;
   }
 
-  if (!/^(\/|uploads\/|public\/uploads\/)/i.test(text)) {
+  if (!/^(\/|uploads\/|public\/uploads\/|viewer-assets\/|\/viewer-assets\/)/i.test(text)) {
     return "";
   }
 
@@ -152,6 +185,14 @@ function resolveUrl(value) {
     }
 
     if (text.startsWith("public/uploads/")) {
+      return new URL(`./${text}`, window.location.href).href;
+    }
+
+    if (text.startsWith("/viewer-assets/")) {
+      return new URL(`.${text}`, window.location.href).href;
+    }
+
+    if (text.startsWith("viewer-assets/")) {
       return new URL(`./${text}`, window.location.href).href;
     }
   }
@@ -220,6 +261,55 @@ function looksLikePdfUrl(value) {
   return /\.pdf(\?.*)?$/i.test(resolveUrl(value));
 }
 
+function looksLikeHtmlUrl(value) {
+  return /\.html?(\?.*)?$/i.test(resolveUrl(value));
+}
+
+function renderFileLink(url, label) {
+  const resolved = resolveUrl(url);
+  if (!resolved) {
+    return escapeHtml(label || url || "-");
+  }
+
+  return `<a href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label || resolved)}</a>`;
+}
+
+function renderPreviewLink(url, label = "Open file") {
+  const resolved = resolveUrl(url);
+  if (!resolved) {
+    return '<span class="dbv-empty">-</span>';
+  }
+
+  if (looksLikeImageUrl(url)) {
+    return `
+      <a class="dbv-thumb-link" href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">
+        <img class="dbv-thumb-inline" src="${escapeHtml(resolved)}" alt="${escapeHtml(label)}">
+        <span>${escapeHtml(label)}</span>
+      </a>
+    `;
+  }
+
+  if (looksLikePdfUrl(url)) {
+    return `
+      <a class="dbv-thumb-link" href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">
+        <span class="dbv-chip">PDF</span>
+        <span>${escapeHtml(label)}</span>
+      </a>
+    `;
+  }
+
+  if (looksLikeHtmlUrl(url)) {
+    return `
+      <a class="dbv-thumb-link" href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">
+        <span class="dbv-chip">HTML</span>
+        <span>${escapeHtml(label)}</span>
+      </a>
+    `;
+  }
+
+  return renderFileLink(url, label);
+}
+
 function normalizeStatus(value) {
   return String(value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_");
 }
@@ -236,6 +326,14 @@ function renderValue(value) {
 
   const resolved = resolveUrl(value);
   if (resolved) {
+    if (looksLikeImageUrl(value)) {
+      return renderPreviewLink(value, "View image");
+    }
+
+    if (looksLikePdfUrl(value) || looksLikeHtmlUrl(value)) {
+      return renderPreviewLink(value, looksLikePdfUrl(value) ? "Open PDF" : "Open HTML");
+    }
+
     return `<a href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resolved)}</a>`;
   }
 
@@ -261,6 +359,12 @@ function renderField(label, value, options = {}) {
 }
 
 function updateLastSyncBadge() {
+  if (state.snapshotMode) {
+    const loadedAt = state.lastSyncedAt ? formatDateTime(state.lastSyncedAt) : "Not loaded yet";
+    lastSyncBadge.textContent = `Loaded: ${loadedAt}`;
+    return;
+  }
+
   lastSyncBadge.textContent = state.lastSyncedAt
     ? `Last sync: ${formatDateTime(state.lastSyncedAt)}`
     : "Not synced yet";
@@ -286,15 +390,10 @@ function applyLocalViewerConfig() {
   state.viewerUsername = String(LOCAL_VIEWER_CONFIG.viewerUsername || "").trim();
   state.viewerPassword = String(LOCAL_VIEWER_CONFIG.viewerPassword || "");
 
-  if (SNAPSHOT_PAYLOAD) {
-    setLoginStatus("Local PostgreSQL snapshot detected. Opening viewer from viewer-data.js...", "info");
-    return;
-  }
-
   if (hasReadOnlyViewerCredentials()) {
-    setLoginStatus("Local viewer credentials detected. Connecting automatically...", "info");
+    setLoginStatus("Local viewer credentials detected. Connecting to the live viewer route...", "info");
   } else {
-    setLoginStatus("Viewer credentials are missing. Add them to viewer.local.js and reload this page.", "error");
+    setLoginStatus("Viewer credentials are missing. The viewer will use the local snapshot if one is available.", "info");
   }
 }
 
@@ -375,18 +474,24 @@ function loadViewerPayload(payload, mode = "") {
   state.submissions = payload.submissions || [];
   state.tables = payload.tables || {};
   state.selectedSubmissionId = state.selectedSubmissionId || state.submissions[0]?.id || null;
-  state.lastSyncedAt = payload.generatedAt || new Date().toISOString();
+  state.snapshotGeneratedAt = payload.generatedAt || "";
+  state.lastSyncedAt = new Date().toISOString();
   updateLastSyncBadge();
   renderAll();
 }
 
-function bootSnapshotViewer() {
+function bootSnapshotViewer(snapshotPayload, message = "") {
   showApp();
-  stopAutoRefresh();
   openAdminBtn.href = "#";
   sourceUrlBadge.textContent = "Source: PostgreSQL snapshot";
-  loadViewerPayload(SNAPSHOT_PAYLOAD, "snapshot");
-  setViewerStatus("Snapshot loaded from viewer-data.js. Run open-viewer.bat or npm run viewer:open to refresh from PostgreSQL.", "info");
+  loadViewerPayload(snapshotPayload, "snapshot");
+  const snapshotTimeNote = state.snapshotGeneratedAt
+    ? ` Snapshot generated at ${formatDateTime(state.snapshotGeneratedAt)}.`
+    : "";
+  setViewerStatus(
+    (message || "Snapshot loaded from viewer-data.js. Run open-viewer.bat or npm run viewer:open to refresh the exported PostgreSQL snapshot.") + snapshotTimeNote,
+    "info"
+  );
 }
 
 function adaptLegacyViewerPayload(payload) {
@@ -608,11 +713,13 @@ function renderMediaSection(submission) {
             <article class="dbv-media-card">
               ${looksLikePdfUrl(item.url)
                 ? `<div class="dbv-media-thumb" style="display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-size:1.15rem;color:#145442;">PDF</div>`
+                : looksLikeHtmlUrl(item.url)
+                  ? `<div class="dbv-media-thumb" style="display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-size:1.15rem;color:#145442;">HTML</div>`
                 : `<img class="dbv-media-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(item.label)}">`}
               <div class="dbv-media-body">
                 <div class="dbv-media-title">${escapeHtml(item.label)}</div>
                 <div class="dbv-media-source">${escapeHtml(formatLabel(item.sourceTable))}</div>
-                <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open file</a>
+                ${renderFileLink(item.url, "Open file")}
               </div>
             </article>
           `;
@@ -921,6 +1028,14 @@ function renderTableCell(key, value) {
     `;
   }
 
+  if (looksLikePdfUrl(value)) {
+    return renderPreviewLink(value, "Open PDF");
+  }
+
+  if (looksLikeHtmlUrl(value)) {
+    return renderPreviewLink(value, "Open HTML");
+  }
+
   if (resolved) {
     return `<a href="${escapeHtml(resolved)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resolved)}</a>`;
   }
@@ -1037,6 +1152,7 @@ async function api(path, options = {}) {
   try {
     response = await fetch(buildApiUrl(path), {
       ...options,
+      cache: "no-store",
       headers
     });
   } catch (_error) {
@@ -1055,24 +1171,6 @@ async function api(path, options = {}) {
   return data;
 }
 
-function stopAutoRefresh() {
-  if (state.refreshTimer) {
-    window.clearInterval(state.refreshTimer);
-    state.refreshTimer = null;
-  }
-}
-
-function startAutoRefresh() {
-  stopAutoRefresh();
-  state.refreshTimer = window.setInterval(() => {
-    if (document.hidden || (!getToken() && !hasReadOnlyViewerCredentials())) {
-      return;
-    }
-
-    loadDatabaseViewer({ silent: true }).catch(() => {});
-  }, AUTO_REFRESH_MS);
-}
-
 async function loadDatabaseViewer({ silent = false } = {}) {
   if (!silent) {
     refreshBtn.disabled = true;
@@ -1083,13 +1181,15 @@ async function loadDatabaseViewer({ silent = false } = {}) {
     const data = hasReadOnlyViewerCredentials()
       ? await fetchReadOnlyViewerData()
       : await api("/api/admin/database-viewer");
+    sourceUrlBadge.textContent = state.apiBaseUrl ? `API: ${state.apiBaseUrl}` : "Source: Live viewer route";
+    openAdminBtn.href = state.apiBaseUrl ? `${state.apiBaseUrl}/admin` : "#";
     loadViewerPayload({
       ...data,
       generatedAt: new Date().toISOString()
     }, state.readOnlyRouteMode || "remote");
     const modeMessage = state.readOnlyRouteMode === "legacy_headers"
-      ? "Live database sync active through the legacy viewer route. This page refreshes automatically every 30 seconds."
-      : "Live database sync active. This page refreshes automatically every 30 seconds.";
+      ? "Live database sync active through the legacy viewer route. Use Refresh Now or reload the page whenever you want the latest data."
+      : "Live database sync active. Use Refresh Now or reload the page whenever you want the latest data.";
     setViewerStatus(modeMessage, "info");
   } catch (error) {
     updateLastSyncBadge();
@@ -1103,70 +1203,96 @@ async function loadDatabaseViewer({ silent = false } = {}) {
   }
 }
 
-async function checkAuth() {
-  if (SNAPSHOT_PAYLOAD) {
-    bootSnapshotViewer();
-    return;
+async function loadSnapshotViewer({ silent = false, message = "" } = {}) {
+  if (!silent) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Refreshing...";
   }
 
+  try {
+    const payload = await loadSnapshotPayload({ force: true });
+    bootSnapshotViewer(payload, message);
+  } catch (error) {
+    setViewerStatus(`Snapshot refresh failed: ${error.message}`, "error");
+    throw error;
+  } finally {
+    if (!silent) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh Now";
+    }
+  }
+}
+
+async function checkAuth() {
   if (hasReadOnlyViewerCredentials()) {
     try {
       showApp();
-      startAutoRefresh();
       await loadDatabaseViewer();
     } catch (error) {
-      stopAutoRefresh();
-      showLogin();
-      setLoginStatus(error.message, "error");
+      try {
+        await loadSnapshotViewer({
+          message: `Live sync is unavailable right now, so the viewer loaded the last exported PostgreSQL snapshot instead. ${error.message}`
+        });
+      } catch (_snapshotError) {
+        showLogin();
+        setLoginStatus(error.message, "error");
+      }
     }
     return;
   }
 
   const token = getToken();
   if (!token) {
-    showLogin();
-    setLoginStatus("Automatic viewer credentials are not available for this page.", "error");
-    return;
+    try {
+      await loadSnapshotViewer({
+        message: "Live viewer credentials are not configured in this page, so the viewer loaded the last exported PostgreSQL snapshot."
+      });
+      return;
+    } catch (_snapshotError) {
+      showLogin();
+      setLoginStatus("Automatic viewer credentials are not available for this page.", "error");
+      return;
+    }
   }
 
   try {
     await api("/api/auth/me");
     showApp();
-    startAutoRefresh();
     await loadDatabaseViewer();
-  } catch (_error) {
+  } catch (error) {
     clearToken();
-    showLogin();
+    try {
+      await loadSnapshotViewer({
+        message: `Signed-in admin access is unavailable right now, so the viewer loaded the last exported PostgreSQL snapshot instead. ${error.message}`
+      });
+    } catch (_snapshotError) {
+      showLogin();
+    }
   }
 }
 
 refreshBtn.addEventListener("click", async () => {
-  if (state.snapshotMode) {
-    window.location.reload();
-    return;
-  }
-
   try {
-    await loadDatabaseViewer();
+    if (hasReadOnlyViewerCredentials() || getToken()) {
+      try {
+        await loadDatabaseViewer();
+        return;
+      } catch (_error) {
+        // Fall back to the last exported snapshot below.
+      }
+    }
+
+    await loadSnapshotViewer({
+      message: "The viewer reloaded the local snapshot from viewer-data.js."
+    });
   } catch (_error) {
-    // Status banner already updated in loadDatabaseViewer.
+    // Status banner already updated in the loader helpers.
   }
 });
 
 logoutBtn.addEventListener("click", () => {
-  stopAutoRefresh();
   clearToken();
   location.reload();
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (state.snapshotMode) {
-    return;
-  }
-
-  if (!document.hidden && (getToken() || hasReadOnlyViewerCredentials())) {
-    loadDatabaseViewer({ silent: true }).catch(() => {});
-  }
 });
 
 submissionSearch.addEventListener("input", renderSubmissionList);

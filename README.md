@@ -93,11 +93,15 @@ The DB init script creates an admin user from these env vars:
    - `PAYPAL_RECEIVER_EMAIL`
    - `SEED_ADMIN_EMAIL`
    - `SEED_ADMIN_PASSWORD`
+   - `VIEWER_USERNAME`
+   - `VIEWER_PASSWORD`
 4. Deploy
 
 `render.yaml` is configured for a manually supplied PostgreSQL connection string in `DATABASE_URL`, which is useful when you are using an external Postgres database instead of a Render-managed database. The fixed PayPal settings are included in the blueprint, while secrets stay manual.
 
 On Render, you can optionally leave `APP_URL` unset and let the application use Render's default `RENDER_EXTERNAL_URL` for PayPal callback URLs.
+
+If `VIEWER_USERNAME` and `VIEWER_PASSWORD` are not set on Render, `viewer.html` will fall back to the last exported snapshot instead of live database sync.
 
 ## Core routes
 
@@ -117,5 +121,6 @@ On Render, you can optionally leave `APP_URL` unset and let the application use 
 ## Notes
 
 - This starter stores uploaded file URLs in the DB after saving them into `public/uploads`.
+- `npm run viewer:open` now regenerates `viewer-data.js` and downloads referenced media files into `viewer-assets/` so `viewer.html` can open those snapshot files locally.
 - For multi-tenant SaaS, add organizations, customer portals, billing, and role-based permissions.
 - For payments, Stripe is the next step.

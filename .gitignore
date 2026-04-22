@@ -1,5 +1,6 @@
 node_modules/
 .env
 viewer-data.js
+viewer-assets/
 viewer.local.js
 .DS_Store

@@ -8,7 +8,16 @@ const TABLE_QUERIES = Object.freeze({
 });
 
 function isMediaUrl(value) {
-  return typeof value === "string" && /^https?:\/\//i.test(value);
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const text = value.trim();
+  if (!text) {
+    return false;
+  }
+
+  return /^https?:\/\//i.test(text) || /^(\/|uploads\/|public\/uploads\/)/i.test(text);
 }
 
 function buildSubmissionMedia(questionnaire, products) {

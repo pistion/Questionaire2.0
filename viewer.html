@@ -15,12 +15,14 @@
       <p class="dbv-eyebrow">Live Database Access</p>
       <h1>Viewer HTML</h1>
       <p class="dbv-login-copy">
-        This viewer now prefers the local PostgreSQL export snapshot. Run the viewer
-        refresh script, then open this HTML to inspect the latest questionnaire data.
+        This viewer now makes a fresh live request whenever the page is opened or when
+        you click Refresh Now, and it falls back to the local PostgreSQL export snapshot
+        only if the live sync is unavailable.
       </p>
       <div id="loginStatus" class="dbv-status hidden"></div>
       <p class="dbv-login-hint">
-        Use `open-viewer.bat` or `npm run viewer:open` to refresh from PostgreSQL first.
+        Use `open-viewer.bat` or `npm run viewer:open` any time you want to refresh the
+        local export snapshot manually.
       </p>
     </div>
   </div>
@@ -31,8 +33,9 @@
         <p class="dbv-eyebrow">Live PostgreSQL Viewer</p>
         <h1>Fresh client answers every time this page opens</h1>
         <p>
-          This viewer can render a direct PostgreSQL export snapshot or, if needed,
-          fall back to the remote app viewer route.
+          This viewer uses manual refresh only. Reload the page or click Refresh Now to
+          make a fresh request for the latest data, and it will only fall back to the
+          stored PostgreSQL snapshot when the live route is unavailable.
         </p>
         <div class="dbv-meta-row">
           <span id="sourceUrlBadge" class="dbv-chip">Waiting for URL</span>
@@ -109,7 +112,6 @@
     </section>
   </div>
 
-  <script src="viewer-data.js"></script>
   <script src="viewer.local.js"></script>
   <script src="public/viewer-standalone.js"></script>
 </body>
